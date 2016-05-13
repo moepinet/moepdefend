@@ -1,6 +1,8 @@
 #ifndef _INIPARSER_H_
 #define _INIPARSER_H_
 
+#include <stdio.h>
+
 #include "moepcommon/types.h"
 
 struct whitelist {

