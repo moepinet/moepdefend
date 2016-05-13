@@ -6,14 +6,12 @@
 #include "sta.h"
 #include "global.h"
 
-#define ESSID_MAX_LEN (32+1)
-
 LIST_HEAD(cl);
 
 struct cell_priv {
 	timeout_t timeout;
 	u8 bssid[IEEE80211_ALEN];
-	char essid[ESSID_MAX_LEN];
+	char essid[IEEE80211_MAX_SSID_LEN+1];
 };
 
 static int
@@ -94,10 +92,10 @@ cell_update_timestamp(cell_t cell)
 int
 cell_update_essid(cell_t cell, const char *essid)
 {
-	if (strlen(essid) > ESSID_MAX_LEN)
+	if (strlen(essid) > IEEE80211_MAX_SSID_LEN)
 		return -1;
 
-	strncpy(cell->essid, essid, ESSID_MAX_LEN);
+	strncpy(cell->essid, essid, IEEE80211_MAX_SSID_LEN);
 
 	return 0;
 }

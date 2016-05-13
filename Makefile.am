@@ -12,6 +12,9 @@ moepdefend_SOURCES += src/cell.h
 moepdefend_SOURCES += src/cell.c
 moepdefend_SOURCES += src/sta.h
 moepdefend_SOURCES += src/sta.c
+moepdefend_SOURCES += src/whitelist.h
+moepdefend_SOURCES += src/whitelist.c
+moepdefend_SOURCES += src/frametypes.h
 
 moepdefend_CPPFLAGS = $(LIBMOEPCOMMON_CFLAGS)
 

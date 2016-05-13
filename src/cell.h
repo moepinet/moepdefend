@@ -1,9 +1,7 @@
 #ifndef _CELL_H_
 #define _CELL_H_
 
-#include <moepcommon/util.h>
-#include <moepcommon/list.h>
-#include <moepcommon/timeout.h>
+#include <moep80211/ieee80211_frametypes.h>
 
 #include "global.h"
 #include "sta.h"

@@ -29,6 +29,8 @@
 #include "global.h"
 #include "daemonize.h"
 #include "cell.h"
+#include "frametypes.h"
+#include "whitelist.h"
 
 
 static int _run = 1;
@@ -95,6 +97,7 @@ static struct cfg {
 		int	tx_rdy;
 		int	rx_rdy;
 	} rad;
+	char whitelist[256];
 } cfg;
 
 static error_t
@@ -358,69 +361,49 @@ get_bssid(struct ieee80211_hdr_gen *hdr)
 	return hdr->addr3;
 }
 
-struct ieee80211_beacon {
-	u64 timestamp;
-	u16 beacon_int;
-	u16 capab_info;
-	u8 variable[0];
-} __attribute__((packed));
-
 static char *
-process_beacon(moep_frame_t frame)
+get_essid(const struct ieee80211_beacon * bcn, ssize_t len)
 {
-	size_t plen, len;
-	static u8 *buffer = NULL;
-	static char essid[ESSID_MAX_LEN+1];
-	struct ieee80211_beacon *bcn;
-	u8 *ptr;
+	size_t elen;
+	int ptr;
+	static char essid[IEEE80211_MAX_SSID_LEN+1];
 
 	memset(essid, 0, sizeof(essid));
 
-	bcn = (struct ieee80211_beacon *)moep_frame_get_payload(frame, &plen);
 	if (!bcn) {
 		LOG(LOG_ERR, "moep_frame_get_payload() failed: %s",
 			strerror(errno));
 		return NULL;
 	}
 
-	for (ptr=bcn->variable; ptr<(u8 *)bcn+plen-2; ptr+=ptr[1]) {
-		if (ptr[0] != 0x00)
+	for (ptr=0; ptr<len-2; ptr+=bcn->variable[ptr+1]) {
+		if (bcn->variable[ptr] != WLAN_EID_SSID)
 			continue;
-		len = min(ptr[1], ESSID_MAX_LEN);
-		if (len > 0)
-			snprintf(essid, len, "%s", &ptr[2]);
+		elen = min((int)bcn->variable[ptr+1]+1, IEEE80211_MAX_SSID_LEN+1);
+		if (elen > 0)
+			snprintf(essid, elen, "%s", &bcn->variable[ptr+2]);
 		break;
 	}
 
 	return essid;
 }
 
-static void
-process_data(cell_t cell, moep_frame_t frame)
+static u8 *
+get_sta_hwaddr(const struct ieee80211_hdr_gen *hdr)
 {
-	struct ieee80211_hdr_gen *hdr;
-	u8 *hwaddr;
-	sta_t sta;
-
-	if (!(hdr = moep_frame_ieee80211_hdr(frame))) {
-		LOG(LOG_ERR, "moep_frame_ieee80211_hdr() failed");
-		return;
-	}
+	static u8 *hwaddr[IEEE80211_ALEN];
 
 	if (ieee80211_has_tods(hdr->frame_control))
-		hwaddr = hdr->addr2;
+		memcpy(hwaddr, hdr->addr2, IEEE80211_ALEN);
 	else if (ieee80211_has_fromds(hdr->frame_control))
-		hwaddr = hdr->addr1;
+		memcpy(hwaddr, hdr->addr1, IEEE80211_ALEN);
 	else
-		return;
+		return NULL;
 
 	if (!is_unicast_mac(hwaddr))
-		return;
+		return NULL;
 
-	if (!(sta = sta_find(&cell->sl, hwaddr)))
-		sta = sta_add(&cell->sl, hwaddr);
-	sta_update(sta);
-
+	return hwaddr;
 }
 
 static void
@@ -428,6 +411,8 @@ radh(moep_dev_t dev, moep_frame_t frame)
 {
 	(void)dev;
 	struct ieee80211_hdr_gen *hdr;
+	size_t len;
+	u8 *payload, *hwaddr;
 	char *essid;
 	u8 *transmitter, *receiver, *bssid;
 	cell_t cell;
@@ -435,6 +420,10 @@ radh(moep_dev_t dev, moep_frame_t frame)
 
 	if (!(hdr = moep_frame_ieee80211_hdr(frame))) {
 		LOG(LOG_ERR, "moep_frame_ieee80211_hdr() failed");
+		goto end;
+	}
+	if (!(payload = moep_frame_get_payload(frame, &len))) {
+		LOG(LOG_ERR, "moep_frame_get_payload() failed");
 		goto end;
 	}
 
@@ -455,13 +444,19 @@ radh(moep_dev_t dev, moep_frame_t frame)
 	cell_update_timestamp(cell);
 
 	if (ieee80211_is_beacon(hdr->frame_control)) {
-		essid = process_beacon(frame);
+		essid = get_essid((const struct ieee80211_beacon *)payload, len);
 		if (!essid)
 			goto end;
 		cell_update_essid(cell, essid);
 	}
-	if (ieee80211_is_data(hdr->frame_control))
-		process_data(cell, frame);
+	else if (ieee80211_is_data(hdr->frame_control)) {
+		hwaddr = get_sta_hwaddr(hdr);
+		if (!hwaddr)
+			goto end;
+		if (!(sta = sta_find(&cell->sl, hwaddr)))
+			sta = sta_add(&cell->sl, hwaddr);
+		sta_update(sta);
+	}
 
 
 	end:
@@ -514,6 +509,7 @@ int
 main(int argc, char **argv)
 {
 	int ret;
+	struct whitelist wlist;
 
 	(void) signal(SIGTERM, signal_handler);
 	(void) signal(SIGINT, signal_handler);
@@ -522,6 +518,8 @@ main(int argc, char **argv)
 
 	(void) check_timer_resoluton();
 	cfg_init();
+
+	iniparser("./whitelist.conf", &wlist);
 
 	argp_parse(&argp, argc, argv, 0, 0, &cfg);
 
