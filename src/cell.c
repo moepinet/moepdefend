@@ -92,6 +92,17 @@ cell_update_timestamp(cell_t cell)
 }
 
 int
+cell_update_essid(cell_t cell, const char *essid)
+{
+	if (strlen(essid) > ESSID_MAX_LEN)
+		return -1;
+
+	strncpy(cell->essid, essid, ESSID_MAX_LEN);
+
+	return 0;
+}
+
+int
 cell_inactive(const cell_t cell, struct timespec *ts)
 {
 	struct itimerspec remaining;

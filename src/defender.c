@@ -188,6 +188,7 @@ log_status(timeout_t t, u32 overrun, void *data)
 		fprintf(file, "Cell %s [inactive since %lds]\n",
 			ether_ntoa((const struct ether_addr *)cell->bssid),
 			inactive.tv_sec);
+		fprintf(file, "  ESSID: %s\n", cell->essid);
 		list_for_each_entry(sta, &cell->sl, list) {
 			if (sta_inactive(sta, &inactive)) {
 				LOG(LOG_ERR, "sta_inactive() failed: %s",
@@ -358,31 +359,40 @@ get_bssid(struct ieee80211_hdr_gen *hdr)
 }
 
 struct ieee80211_beacon {
-	u8 timestamp[8];
-	u8 interval[2];
-	u8 caps[2];
-	char tags[0];
-};
+	u64 timestamp;
+	u16 beacon_int;
+	u16 capab_info;
+	u8 variable[0];
+} __attribute__((packed));
 
-static void
+static char *
 process_beacon(moep_frame_t frame)
 {
-//	size_t len;
-//	struct ieee80211_mgmt *bcn;
-//	static u8 *buffer = NULL;
-//	char essid[ESSID_MAX_LEN+1];
-//	u8 *ptr;
-//
-//	moep_frame_encode(frame, &buffer, 0);
-//
-//	bcn = (void *)buffer;
-//	ptr = bcn->u.beacon.variable;
-//
-//	snprintf(essid, 32, "%s", ptr);
-//	LOG(LOG_INFO, "%s", essid);
-////	hexdump (ptr+4, 256);
-//
-//	free(*buffer);
+	size_t plen, len;
+	static u8 *buffer = NULL;
+	static char essid[ESSID_MAX_LEN+1];
+	struct ieee80211_beacon *bcn;
+	u8 *ptr;
+
+	memset(essid, 0, sizeof(essid));
+
+	bcn = (struct ieee80211_beacon *)moep_frame_get_payload(frame, &plen);
+	if (!bcn) {
+		LOG(LOG_ERR, "moep_frame_get_payload() failed: %s",
+			strerror(errno));
+		return NULL;
+	}
+
+	for (ptr=bcn->variable; ptr<(u8 *)bcn+plen-2; ptr+=ptr[1]) {
+		if (ptr[0] != 0x00)
+			continue;
+		len = min(ptr[1], ESSID_MAX_LEN);
+		if (len > 0)
+			snprintf(essid, len, "%s", &ptr[2]);
+		break;
+	}
+
+	return essid;
 }
 
 static void
@@ -418,6 +428,7 @@ radh(moep_dev_t dev, moep_frame_t frame)
 {
 	(void)dev;
 	struct ieee80211_hdr_gen *hdr;
+	char *essid;
 	u8 *transmitter, *receiver, *bssid;
 	cell_t cell;
 	sta_t sta;
@@ -443,8 +454,12 @@ radh(moep_dev_t dev, moep_frame_t frame)
 		cell = cell_add(bssid);
 	cell_update_timestamp(cell);
 
-	if (ieee80211_is_beacon(hdr->frame_control))
-		process_beacon(frame);
+	if (ieee80211_is_beacon(hdr->frame_control)) {
+		essid = process_beacon(frame);
+		if (!essid)
+			goto end;
+		cell_update_essid(cell, essid);
+	}
 	if (ieee80211_is_data(hdr->frame_control))
 		process_data(cell, frame);
 

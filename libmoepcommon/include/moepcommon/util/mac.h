@@ -40,7 +40,8 @@ is_bcast_mac(const void *mac)
 static inline int
 is_unicast_mac(const void *mac)
 {
-	return ~(is_bcast_mac(mac) | is_mcast_mac(mac));
+	return ((0x80 & ((unsigned char *)mac)[0]) >> 7)^0x01;
+//	return ~(is_bcast_mac(mac) | is_mcast_mac(mac));
 }
 
 static inline int
