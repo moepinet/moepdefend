@@ -17,5 +17,6 @@ struct whitelist {
 
 int whitelist_load(struct whitelist *wlist);
 void whitelist_destroy(struct whitelist *wlist);
+void whitelist_print(FILE *fd, const struct whitelist *wlist);
 
 #endif//_INIPARSER_H_

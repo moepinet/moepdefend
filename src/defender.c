@@ -497,7 +497,7 @@ cfg_init()
 }
 
 static int
-check_timer_resoluton()
+check_timer_resolution()
 {
 	struct timespec ts;
 	u64 res;
@@ -506,7 +506,7 @@ check_timer_resoluton()
 	res = ts.tv_sec*1000*1000 + ts.tv_nsec/1000;
 
 	if (!res) {
-		LOG(LOG_INFO, "timer resultion is %lu nsec [OK]", ts.tv_nsec);
+		LOG(LOG_INFO, "timer resolution is %lu nsec [OK]", ts.tv_nsec);
 		return 0;
 	}
 
@@ -526,7 +526,7 @@ main(int argc, char **argv)
 
 	LOG(LOG_INFO,"defender starting...");
 
-	(void) check_timer_resoluton();
+	(void) check_timer_resolution();
 	cfg_init();
 
 	argp_parse(&argp, argc, argv, 0, 0, &cfg);
@@ -554,6 +554,8 @@ main(int argc, char **argv)
 	moep_dev_set_rx_event(cfg.rad.dev, cfg.rad.rx_rdy);
 
 	whitelist_load(&cfg.whitelist);
+	whitelist_print(stdout, &cfg.whitelist);
+
 	ret = run();
 	whitelist_destroy(&cfg.whitelist);
 
