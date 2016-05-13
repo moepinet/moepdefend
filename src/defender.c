@@ -391,7 +391,7 @@ get_essid(const struct ieee80211_beacon * bcn, ssize_t len)
 static u8 *
 get_sta_hwaddr(const struct ieee80211_hdr_gen *hdr)
 {
-	static u8 *hwaddr[IEEE80211_ALEN];
+	static u8 hwaddr[IEEE80211_ALEN];
 
 	if (ieee80211_has_tods(hdr->frame_control))
 		memcpy(hwaddr, hdr->addr2, IEEE80211_ALEN);
@@ -437,8 +437,6 @@ radh(moep_dev_t dev, moep_frame_t frame)
 	if (!bssid)
 		goto end;
 
-	//LOG(LOG_INFO, "BSSID %s: %s -> %s", bssid, transmitter, receiver);
-
 	if (!(cell = cell_find(bssid)))
 		cell = cell_add(bssid);
 	cell_update_timestamp(cell);
@@ -457,7 +455,6 @@ radh(moep_dev_t dev, moep_frame_t frame)
 			sta = sta_add(&cell->sl, hwaddr);
 		sta_update(sta);
 	}
-
 
 	end:
 	moep_frame_destroy(frame);

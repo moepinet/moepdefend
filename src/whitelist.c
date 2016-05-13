@@ -42,9 +42,8 @@ find_section(FILE *file)
 static int
 parse_section(FILE *file, u8 **hwaddr)
 {
-	const char delim = ':';
-	char *line, *tok;
-	size_t n, len;
+	char *line;
+	size_t n;
 	int count;
 	struct ether_addr *ptr;
 
@@ -74,8 +73,6 @@ int
 iniparser(const char *filename, struct whitelist *wlist)
 {
 	FILE *file;
-	char *line;
-	size_t len;
 	int section;
 
 	if (!(file = fopen(filename, "r")))
@@ -102,6 +99,6 @@ iniparser(const char *filename, struct whitelist *wlist)
 
 	fclose(file);
 
-	return NULL;
+	return 0;
 }
 
