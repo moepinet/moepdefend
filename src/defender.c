@@ -475,21 +475,19 @@ attack(moep_frame_t frame)
 	sta_t sta;
 	cell_t cell;
 
-	LOG(LOG_ERR, "begin");
-
 	if (!(hdr = moep_frame_ieee80211_hdr(frame))) {
 		LOG(LOG_ERR, "moep_frame_ieee80211_hdr() failed");
 		return -1;
 	}
 
-	if (!(bssid = get_bssid(hdr)))
-		LOG(LOG_INFO, "bssid not found");
-
-	if (!(hwaddr = get_sta_hwaddr(hdr)))
-		LOG(LOG_INFO, "sta hwaddr not found");
-
-	if (!bssid || !hwaddr) {
+	if (!(bssid = get_bssid(hdr))) {
 		return -1;
+		//LOG(LOG_INFO, "bssid not found");
+	}
+
+	if (!(hwaddr = get_sta_hwaddr(hdr))) {
+		return -1;
+		//LOG(LOG_INFO, "sta hwaddr not found");
 	}
 
 	cell = cell_find(bssid);
@@ -539,7 +537,6 @@ radh(moep_dev_t dev, moep_frame_t frame)
 		LOG(LOG_ERR, "no bssid");
 		goto end;
 	}
-	LOG(LOG_ERR, "go on");
 
 	if (!(cell = cell_find(bssid)))
 		cell = cell_add(bssid);

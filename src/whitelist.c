@@ -20,6 +20,11 @@ static char * sectionname[] = {
 	"[sta]",
 };
 
+struct la {
+	struct list_head list;
+	u8 hwaddr[IEEE80211_ALEN];
+};
+
 static int
 find_section(FILE *file)
 {
@@ -42,13 +47,14 @@ find_section(FILE *file)
 }
 
 static int
-parse_section(FILE *file, u8 ***hwaddr)
+parse_section(FILE *file, struct list_head *l)
 {
 	char *line;
 	size_t n;
 	int count;
 	struct ether_addr *ptr;
 	long pos;
+	struct la * elem;
 
 	pos = ftell(file);
 
@@ -62,9 +68,9 @@ parse_section(FILE *file, u8 ***hwaddr)
 		if (!(ptr = ether_aton(line)))
 			continue;
 
-		*hwaddr = realloc(*hwaddr, (count+1)*sizeof(**hwaddr));
-		(*hwaddr)[count] = malloc(IEEE80211_ALEN);
-		memcpy((*hwaddr)[count], ptr, IEEE80211_ALEN);
+		elem = calloc(1, sizeof(struct la));
+		memcpy(elem->hwaddr, ptr, IEEE80211_ALEN);
+		list_add(&elem->list, l);
 		count++;
 	}
 
@@ -80,20 +86,18 @@ whitelist_load(struct whitelist *wlist)
 	if (!(file = fopen(wlist->filename, "r")))
 		return -1;
 
-	wlist->cell.hwaddr = NULL;
-	wlist->sta.hwaddr = NULL;
+	INIT_LIST_HEAD(&wlist->cell);
+	INIT_LIST_HEAD(&wlist->sta);
 
 	section = find_section(file);
 	while (section >= 0) {
 		switch (section) {
 			case section_bssid:
-				wlist->cell.count = parse_section(file,
-					&wlist->cell.hwaddr);
+				parse_section(file, &wlist->cell);
 			break;
 
 			case section_hwaddr:
-				wlist->sta.count = parse_section(file,
-					&wlist->sta.hwaddr);
+				parse_section(file, &wlist->sta);
 			break;
 
 			default:
@@ -111,14 +115,16 @@ void
 whitelist_destroy(struct whitelist *wlist)
 {
 	int i;
+	struct la *cur, *tmp;
 
-	for (i=0; i<wlist->cell.count; i++)
-		free (wlist->cell.hwaddr[i]);
-	for (i=0; i<wlist->sta.count; i++)
-		free (wlist->sta.hwaddr[i]);
-
-	free (wlist->cell.hwaddr);
-	free (wlist->sta.hwaddr);
+	list_for_each_entry_safe(cur, tmp, &wlist->cell, list) {
+		list_del(&cur->list);
+		free(cur);
+	}
+	list_for_each_entry_safe(cur, tmp, &wlist->sta, list) {
+		list_del(&cur->list);
+		free(cur);
+	}
 
 	return;
 }
@@ -126,20 +132,18 @@ whitelist_destroy(struct whitelist *wlist)
 void
 whitelist_print(FILE *file, const struct whitelist *wlist)
 {
-	int i;
+	struct la *cur;
 
-	fprintf(file, "Whitelisted cells by BSSID: %d\n",
-		wlist->cell.count);
-	for (i=0; i<wlist->cell.count; i++) {
+	fprintf(file, "Whitelisted cells by BSSID\n");
+	list_for_each_entry(cur, &wlist->cell, list) {
 		fprintf(file, "  %s\n", ether_ntoa(
-			(const struct ether_addr *)wlist->cell.hwaddr[i]));
+			(const struct ether_addr *)cur->hwaddr));
 	}
 
-	fprintf(file, "Whitelisted stations by hwaddr: %d\n",
-		wlist->sta.count);
-	for (i=0; i<wlist->sta.count; i++) {
+	fprintf(file, "Whitelisted stations by hwaddr\n");
+	list_for_each_entry(cur, &wlist->cell, list) {
 		fprintf(file, "  %s\n", ether_ntoa(
-			(const struct ether_addr *)wlist->sta.hwaddr[i]));
+			(const struct ether_addr *)cur->hwaddr));
 	}
 }
 
