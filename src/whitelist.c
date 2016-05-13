@@ -114,7 +114,6 @@ whitelist_load(struct whitelist *wlist)
 void
 whitelist_destroy(struct whitelist *wlist)
 {
-	int i;
 	struct la *cur, *tmp;
 
 	list_for_each_entry_safe(cur, tmp, &wlist->cell, list) {
@@ -145,5 +144,21 @@ whitelist_print(FILE *file, const struct whitelist *wlist)
 		fprintf(file, "  %s\n", ether_ntoa(
 			(const struct ether_addr *)cur->hwaddr));
 	}
+}
+
+int
+whitelist_check(struct list_head *list, const u8 *hwaddr)
+{
+	struct la *cur;
+
+	if (!hwaddr)
+		return 0;
+
+	list_for_each_entry(cur, list, list) {
+		if (!memcmp(cur->hwaddr, hwaddr, IEEE80211_ALEN))
+			return 1;
+	}
+
+	return 0;
 }
 

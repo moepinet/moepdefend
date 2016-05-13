@@ -43,7 +43,6 @@ const char *argp_program_bug_address = "<moepi@moepi.net>";
 
 static char args_doc[] = "IF FREQ";
 
-static int send_beacon(timeout_t t, u32 overrun, void *data);
 static int rad_tx(moep_frame_t f);
 
 /*
@@ -377,17 +376,6 @@ run()
 	return _run;
 }
 
-static u8 *
-get_transmitter(struct ieee80211_hdr_gen *hdr)
-{
-	return hdr->addr2;
-}
-
-static u8 *
-get_receiver(struct ieee80211_hdr_gen *hdr)
-{
-	return hdr->addr1;
-}
 
 static u8 *
 get_bssid(struct ieee80211_hdr_gen *hdr)
@@ -472,8 +460,6 @@ attack(moep_frame_t frame)
 	struct ieee80211_hdr_gen *hdr;
 	moep_frame_t f;
 	u8 *hwaddr, *bssid;
-	sta_t sta;
-	cell_t cell;
 
 	if (!(hdr = moep_frame_ieee80211_hdr(frame))) {
 		LOG(LOG_ERR, "moep_frame_ieee80211_hdr() failed");
@@ -489,12 +475,6 @@ attack(moep_frame_t frame)
 		return -1;
 		//LOG(LOG_INFO, "sta hwaddr not found");
 	}
-
-	cell = cell_find(bssid);
-	sta = sta_find(&cell->sl, hwaddr);
-
-	if (!cell || !bssid)
-		return -1;
 
 	f = deauth(hwaddr, bssid);
 	rad_tx(f);
@@ -556,6 +536,11 @@ radh(moep_dev_t dev, moep_frame_t frame)
 			sta = sta_add(&cell->sl, hwaddr);
 		sta_update(sta);
 	}
+
+	if (whitelist_check(&cfg.whitelist.cell, bssid))
+		goto end;
+	if (whitelist_check(&cfg.whitelist.sta, hwaddr))
+		goto end;
 
 	attack(frame);
 

@@ -1,5 +1,5 @@
-#ifndef _INIPARSER_H_
-#define _INIPARSER_H_
+#ifndef _WHITELIST_H_
+#define _WHITELIST_H_
 
 #include <stdio.h>
 
@@ -15,7 +15,6 @@ struct whitelist {
 int whitelist_load(struct whitelist *wlist);
 void whitelist_destroy(struct whitelist *wlist);
 void whitelist_print(FILE *fd, const struct whitelist *wlist);
-int whitelist_check_cell(const u8 *hwaddr);
-int whitelist_check_sta(const u8 *hwaddr);
+int whitelist_check(struct list_head *list, const u8 *hwaddr);
 
-#endif//_INIPARSER_H_
+#endif//_WHITELIST_H_
