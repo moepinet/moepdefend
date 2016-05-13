@@ -117,8 +117,6 @@ parse_opt(int key, char *arg, struct argp_state *state)
 					"Invalid frequency: %lld", freq);
 			cfg->wlan.freq0 = freq;
 			cfg->wlan.freq1 += freq;
-			LOG(LOG_INFO, "freq = %d", cfg->wlan.freq0);
-			LOG(LOG_INFO, "freq = %d", cfg->wlan.freq1);
 			break;
 		default:
 			argp_usage(state);
@@ -166,22 +164,43 @@ moep_frame_t create_rad_frame()
 }
 
 static int
-send_beacon(timeout_t t, u32 overrun, void *data)
+log_status(timeout_t t, u32 overrun, void *data)
 {
 	(void) data;
 	(void) t;
 	(void) overrun;
+	cell_t cell;
+	sta_t sta;
+	struct timespec inactive;
+	FILE *file;
 
-	moep_frame_t frame;
+	if (!(file = fopen(LOG_FILE, "w"))) {
+		LOG(LOG_ERR, "fopen() failed: %s", strerror(errno));
+		return -1;
+	}
 
-	if (!(frame = create_rad_frame()))
-		return 0;
+	list_for_each_entry(cell, &cl, list) {
+		if (cell_inactive(cell, &inactive)) {
+			LOG(LOG_ERR, "cell_inactive() failed: %s",
+				strerror(errno));
+			continue;
+		}
+		fprintf(file, "Cell %s [inactive since %lds]\n",
+			ether_ntoa((const struct ether_addr *)cell->bssid),
+			inactive.tv_sec);
+		list_for_each_entry(sta, &cell->sl, list) {
+			if (sta_inactive(sta, &inactive)) {
+				LOG(LOG_ERR, "sta_inactive() failed: %s",
+					strerror(errno));
+				continue;
+			}
+			fprintf(file, "  STA %s [inactive since %lds]\n",
+				ether_ntoa((const struct ether_addr *)sta->hwaddr),
+				inactive.tv_sec);
+		}
+	}
 
-
-
-	rad_tx(frame);
-
-	moep_frame_destroy(frame);
+	fclose(file);
 	return 0;
 }
 
@@ -230,8 +249,7 @@ static int
 run()
 {
 	int ret, maxfd;
-	struct itimerspec ts;
-	timeout_t beacon_timeout;
+	timeout_t logt;
 	struct signalfd_siginfo siginfo;
 	fd_set rfds, rfd;
 	sigset_t sigset, oldset, blockset, emptyset;
@@ -239,7 +257,7 @@ run()
 	sigemptyset(&blockset);
 	sigaddset(&blockset, SIGRTMIN);
 	sigaddset(&blockset, SIGRTMIN+1);
-	if (0 > sigprocmask(SIG_BLOCK, &blockset, NULL) ) {
+	if (0 > sigprocmask(SIG_BLOCK, &blockset, NULL)) {
 		moep_dev_close(cfg.rad.dev);
 		DIE("sigprocmask() failed: %s", strerror(errno));
 	}
@@ -252,13 +270,9 @@ run()
 		DIE("sigprocmask() failed: %s", strerror(errno));
 	}
 
-	if (0 > timeout_create(CLOCK_MONOTONIC, &beacon_timeout, send_beacon,
-									NULL))
+	if (0 > timeout_create(CLOCK_MONOTONIC, &logt, log_status, NULL))
 		DIE("timeout_create() failed: %s", strerror(errno));
-	ts.it_interval.tv_sec  = 0;
-	ts.it_interval.tv_nsec = 500*1000*1000;
-	ts.it_value = ts.it_interval;
-	timeout_settime(beacon_timeout, 0, &ts);
+	timeout_settime(logt, 0, timeout_msec(LOG_INTERVAL,LOG_INTERVAL));
 
 	sigemptyset(&emptyset);
 	sigaddset(&emptyset, SIGRTMIN);
@@ -308,7 +322,7 @@ run()
 		}
 	}
 
-	timeout_delete(beacon_timeout);
+	timeout_delete(logt);
 
 	sigprocmask(SIG_SETMASK, &oldset, NULL);
 	return _run;
@@ -372,20 +386,30 @@ process_beacon(moep_frame_t frame)
 }
 
 static void
-process_data(cell_t cell, struct ieee80211_hdr_gen *hdr)
+process_data(cell_t cell, moep_frame_t frame)
 {
+	struct ieee80211_hdr_gen *hdr;
 	u8 *hwaddr;
 	sta_t sta;
 
-	if (ieee80211_has_tods(hdr))
+	if (!(hdr = moep_frame_ieee80211_hdr(frame))) {
+		LOG(LOG_ERR, "moep_frame_ieee80211_hdr() failed");
+		return;
+	}
+
+	if (ieee80211_has_tods(hdr->frame_control))
 		hwaddr = hdr->addr2;
-	else if (ieee80211_has_fromds(hdr))
+	else if (ieee80211_has_fromds(hdr->frame_control))
 		hwaddr = hdr->addr1;
 	else
 		return;
 
+	if (!is_unicast_mac(hwaddr))
+		return;
+
 	if (!(sta = sta_find(&cell->sl, hwaddr)))
-		sta_add(&cell->sl, hwaddr);
+		sta = sta_add(&cell->sl, hwaddr);
+	sta_update(sta);
 
 }
 
@@ -394,7 +418,7 @@ radh(moep_dev_t dev, moep_frame_t frame)
 {
 	(void)dev;
 	struct ieee80211_hdr_gen *hdr;
-	char *transmitter, *receiver, *bssid;
+	u8 *transmitter, *receiver, *bssid;
 	cell_t cell;
 	sta_t sta;
 
@@ -406,6 +430,9 @@ radh(moep_dev_t dev, moep_frame_t frame)
 	transmitter = get_transmitter(hdr);
 	receiver = get_receiver(hdr);
 	bssid = get_bssid(hdr);
+
+	if (!is_unicast_mac(bssid))
+		goto end;
 
 	if (!bssid)
 		goto end;

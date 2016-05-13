@@ -5,7 +5,10 @@
 #define BIT(nr)		(1UL << (nr))
 #endif
 
-#define CELL_TIMEOUT 60
-#define STA_TIMEOUT 30
+#define CELL_TIMEOUT	60	// [s]
+#define STA_TIMEOUT	30	// [s]
+#define LOG_INTERVAL	100	// [ms]
+
+#define LOG_FILE	"/dev/shm/moepdefend"
 
 #endif//_GLOBAL_H_

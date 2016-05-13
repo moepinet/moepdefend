@@ -1,4 +1,4 @@
-AC_INIT([moep80211 DEFENDER], [0.0], [moepi@moepi.net], [defender], [http://moep80211.net])
+AC_INIT([moep80211 MOEPDEFEND], [0.0], [moepi@moepi.net], [moepdefend], [http://moep80211.net])
 #AC_PREREQ([2.69])
 
 AC_PROG_CC

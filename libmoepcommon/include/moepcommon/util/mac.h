@@ -38,6 +38,12 @@ is_bcast_mac(const void *mac)
 }
 
 static inline int
+is_unicast_mac(const void *mac)
+{
+	return ~(is_bcast_mac(mac) | is_mcast_mac(mac));
+}
+
+static inline int
 is_local_mac(const void *mac, const void *local)
 {
 	return !memcmp(mac,local,MAC_ALEN);
