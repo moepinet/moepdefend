@@ -61,6 +61,13 @@ enum fix_args {
 };
 
 static struct argp_option options[] = {
+	{
+		.name	= "whitelist",
+		.key	= 'w',
+		.arg	= "WLIST",
+		.flags	= 0,
+		.doc	= "Load whitelist WLIST"
+	},
 	{NULL}
 };
 
@@ -97,17 +104,21 @@ static struct cfg {
 		int	tx_rdy;
 		int	rx_rdy;
 	} rad;
-	char whitelist[256];
+	struct whitelist whitelist;
 } cfg;
 
 static error_t
 parse_opt(int key, char *arg, struct argp_state *state)
 {
 	struct cfg *cfg = state->input;
-	char *endptr = NULL;
 	long long int freq;
+	char *endptr = NULL;
 
 	switch (key) {
+	case 'w':
+		strncpy(cfg->whitelist.filename, arg,
+					sizeof(cfg->whitelist.filename));
+		break;
 	case ARGP_KEY_ARG:
 		switch (state->arg_num) {
 		case FIX_ARG_IF:
@@ -177,7 +188,7 @@ log_status(timeout_t t, u32 overrun, void *data)
 	struct timespec inactive;
 	FILE *file;
 
-	if (!(file = fopen(LOG_FILE, "w"))) {
+	if (!(file = fopen(DEFAULT_LOGFILE, "w"))) {
 		LOG(LOG_ERR, "fopen() failed: %s", strerror(errno));
 		return -1;
 	}
@@ -480,6 +491,9 @@ cfg_init()
 				| IEEE80211_RADIOTAP_MCS_HAVE_BW;
 	cfg.wlan.rt.mcs.mcs	= 0;
 	cfg.wlan.rt.mcs.flags	= IEEE80211_RADIOTAP_MCS_BW_20;
+
+	strncpy(cfg.whitelist.filename, DEFAULT_WHITELIST,
+		sizeof(cfg.whitelist.filename));
 }
 
 static int
@@ -506,7 +520,6 @@ int
 main(int argc, char **argv)
 {
 	int ret;
-	struct whitelist wlist;
 
 	(void) signal(SIGTERM, signal_handler);
 	(void) signal(SIGINT, signal_handler);
@@ -515,8 +528,6 @@ main(int argc, char **argv)
 
 	(void) check_timer_resoluton();
 	cfg_init();
-
-	iniparser("./whitelist.conf", &wlist);
 
 	argp_parse(&argp, argc, argv, 0, 0, &cfg);
 
@@ -542,7 +553,9 @@ main(int argc, char **argv)
 	cfg.rad.rx_rdy = eventfd(1, EFD_SEMAPHORE | EFD_CLOEXEC);
 	moep_dev_set_rx_event(cfg.rad.dev, cfg.rad.rx_rdy);
 
+	whitelist_load(&cfg.whitelist);
 	ret = run();
+	whitelist_destroy(&cfg.whitelist);
 
 	moep_dev_close(cfg.rad.dev);
 

@@ -4,6 +4,7 @@
 #include "moepcommon/types.h"
 
 struct whitelist {
+	char filename[256];
 	struct {
 		int count;
 		u8 **hwaddr;
@@ -14,6 +15,7 @@ struct whitelist {
 	} sta;
 };
 
-int iniparser(const char *filename, struct whitelist *wlist);
+int whitelist_load(struct whitelist *wlist);
+void whitelist_destroy(struct whitelist *wlist);
 
 #endif//_INIPARSER_H_

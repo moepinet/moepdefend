@@ -70,12 +70,12 @@ parse_section(FILE *file, u8 **hwaddr)
 }
 
 int
-iniparser(const char *filename, struct whitelist *wlist)
+whitelist_load(struct whitelist *wlist)
 {
 	FILE *file;
 	int section;
 
-	if (!(file = fopen(filename, "r")))
+	if (!(file = fopen(wlist->filename, "r")))
 		return -1;
 
 	section = find_section(file);
@@ -100,5 +100,30 @@ iniparser(const char *filename, struct whitelist *wlist)
 	fclose(file);
 
 	return 0;
+}
+
+void
+whitelist_destroy(struct whitelist *wlist)
+{
+	int i;
+
+	for (i=0; i<wlist->cell.count; i++)
+		free (wlist->cell.hwaddr[i]);
+	for (i=0; i<wlist->sta.count; i++)
+		free (wlist->sta.hwaddr[i]);
+
+	free (wlist->cell.hwaddr);
+	free (wlist->sta.hwaddr);
+
+	return;
+}
+
+void
+whitelist_print(const struct whitelist *wlist)
+{
+	for (i=0; i<wlist->cell.count; i++)
+		free (wlist->cell.hwaddr[i]);
+	for (i=0; i<wlist->sta.count; i++)
+		free (wlist->sta.hwaddr[i]);
 }
 
