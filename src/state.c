@@ -7,24 +7,24 @@ static char *
 cipher_str(u32 ciphers)
 {
 	static char str[256];
-	size_t n;
+	size_t n = 0;
 
 	memset(str, 0, sizeof(str));
 
 	if (ciphers & BIT(CIPHER_SUITE_WEP40)) {
-		n = snprintf(str, sizeof(str)-n, " %s",
+		n += snprintf(str+n, sizeof(str)-n, " %s",
 				cipher_suite_string[CIPHER_SUITE_WEP40]);
 	}
 	if (ciphers & BIT(CIPHER_SUITE_WEP104)) {
-		n = snprintf(str, sizeof(str)-n, " %s",
+		n += snprintf(str+n, sizeof(str)-n, " %s",
 				cipher_suite_string[CIPHER_SUITE_WEP104]);
 	}
 	if (ciphers & BIT(CIPHER_SUITE_CCMP)) {
-		n = snprintf(str, sizeof(str)-n, " %s",
+		n += snprintf(str+n, sizeof(str)-n, " %s",
 				cipher_suite_string[CIPHER_SUITE_CCMP]);
 	}
 	if (ciphers & BIT(CIPHER_SUITE_TKIP)) {
-		n = snprintf(str, sizeof(str)-n, " %s",
+		n += snprintf(str+n, sizeof(str)-n, " %s",
 				cipher_suite_string[CIPHER_SUITE_TKIP]);
 	}
 

@@ -24,7 +24,7 @@ hexdump2(const void *buffer, ssize_t len)
 				p += sprintf(str + p, ">> %.4x:  ", i);
 			}
 		}
-		p += sprintf(str + p, "%c ", ((unsigned char *) buffer)[i]);
+		p += sprintf(str + p, "%02x ", ((unsigned char *) buffer)[i]);
 
 		if ((sizeof(str) - p) < 64)
 			break;
