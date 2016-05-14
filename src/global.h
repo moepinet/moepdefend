@@ -7,7 +7,7 @@
 
 #define CELL_TIMEOUT	60	// [s]
 #define STA_TIMEOUT	30	// [s]
-#define LOG_INTERVAL	100	// [ms]
+#define LOG_INTERVAL	500	// [ms]
 
 #define DEFAULT_LOGFILE		"/dev/shm/moepdefend"
 #define DEFAULT_WHITELIST	"./whitelist.conf"

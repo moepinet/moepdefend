@@ -49,7 +49,7 @@ sta_find(const struct list_head *sl, const u8 *hwaddr)
 sta_t
 sta_add(struct list_head *sl, const u8 *hwaddr)
 {
-	struct sta *sta = sta_find(sl, hwaddr);
+	sta_t sta = sta_find(sl, hwaddr);
 
 	if (sta) {
 		errno = EEXIST;
