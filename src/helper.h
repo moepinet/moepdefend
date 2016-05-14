@@ -1,6 +1,4 @@
 #ifndef _HELPER_H_
-#define _HELPER_H_
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -17,16 +15,7 @@
 #define CIPHER_SUITE_CCMP	4
 #define CIPHER_SUITE_WEP104	5
 
-const static char * cipher_suite_string[] = {
-	"",
-	"WEP40",
-	"TKIP",
-	"",
-	"CCMP",
-	"WEP104",
-	NULL,
-};
-
+extern const char * cipher_suite_string[7];
 
 int get_bssid(u8 *buffer, const struct ieee80211_hdr_gen *hdr);
 int get_sta_hwaddr(u8 *buffer, const struct ieee80211_hdr_gen *hdr);

@@ -24,6 +24,8 @@ moepdefend_SOURCES += src/list_sort.c
 moepdefend_SOURCES += src/list_sort.h
 moepdefend_SOURCES += src/state.c
 moepdefend_SOURCES += src/state.h
+moepdefend_SOURCES += src/attack.c
+moepdefend_SOURCES += src/attack.h
 moepdefend_SOURCES += src/frametypes.h
 moepdefend_SOURCES += src/params.h
 

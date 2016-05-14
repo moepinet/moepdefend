@@ -1,6 +1,16 @@
 #include "helper.h"
 #include "global.h"
 
+const char * cipher_suite_string[] = {
+	"",
+	"WEP40",
+	"TKIP",
+	"",
+	"CCMP",
+	"WEP104",
+	NULL,
+};
+
 int
 get_bssid(u8 *buffer, const struct ieee80211_hdr_gen *hdr)
 {
@@ -103,9 +113,12 @@ get_encryption(const struct ieee80211_beacon *bcn, size_t len)
 {
 	size_t tag_len = 0;
 	struct wlan_eid_rsn rsn;
-	static struct cipher pairwise_cipher[16];
+	struct cipher pairwise_cipher[16];
 	int ptr, i;
 	int mask = 0;
+
+	memset(&rsn, 0, sizeof(rsn));
+	memset(pairwise_cipher, 0, sizeof(pairwise_cipher));
 
 	for (ptr=0; ptr<len-2; ptr+=bcn->variable[ptr+1]+2) {
 		if (bcn->variable[ptr] != WLAN_EID_RSN)
@@ -117,12 +130,13 @@ get_encryption(const struct ieee80211_beacon *bcn, size_t len)
 	if (0 == tag_len)
 		return -1;
 
+	len = min((size_t)rsn.pairwise_cipher_count, (size_t)16);
 
 	memcpy(&rsn, bcn->variable+ptr, sizeof(rsn));
 	memcpy(pairwise_cipher, bcn->variable+ptr+sizeof(rsn),
-		min(rsn.pairwise_cipher_count,16)*sizeof(struct cipher));
+		len*sizeof(struct cipher));
 
-	for (i=0; i<min(rsn.pairwise_cipher_count,2); i++)
+	for (i=0; i<len; i++)
 		mask |= BIT(pairwise_cipher[i].type);
 
 	return mask;
