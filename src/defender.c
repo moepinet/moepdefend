@@ -41,6 +41,7 @@
 
 static volatile int _run = 1;
 static int sfd = -1;
+static int do_attack = 0;
 
 extern struct argp argp;
 extern struct cfg cfg;
@@ -55,6 +56,10 @@ signal_handler(int sig)
 	case SIGINT:
 	case SIGTERM:
 		_run = 0;
+		break;
+	case SIGUSR1:
+		do_attack = !do_attack;
+		LOG(LOG_INFO, "attacking switched %s", do_attack ? "on" : "off");
 		break;
 
 	default:
@@ -226,7 +231,8 @@ radh(moep_dev_t dev, moep_frame_t frame)
 	if (whitelist_check(&cfg.whitelist.sta, hwaddr))
 		goto end;
 
-	//attack(frame);
+	if (do_attack)
+		attack(frame);
 
 	end:
 	moep_frame_destroy(frame);
@@ -284,6 +290,7 @@ main(int argc, char **argv)
 
 	(void) signal(SIGTERM, signal_handler);
 	(void) signal(SIGINT, signal_handler);
+	(void) signal(SIGUSR1, signal_handler);
 
 	LOG(LOG_INFO,"defender starting...");
 
