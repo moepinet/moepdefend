@@ -58,6 +58,7 @@ state_log()
 			mac_ntoa((const struct ether_addr *)cell->bssid),
 			cell->essid, cipher_str(cell->ciphers));
 		fprintf(file, "%*lds ", 62-x, inactive.tv_sec);
+		fprintf(file, "%*ddb", 3, cell->signal);
 		fprintf(file, "%*lu\n", 7, cell->numpackets);
 
 		list_for_each_entry(sta, &cell->sl, list) {
@@ -68,9 +69,9 @@ state_log()
 			}
 			x = fprintf(file, "  STA %s", mac_ntoa(
 				(const struct ether_addr *)sta->hwaddr));
-			fprintf(file, "%*s[%lds,%lu,%d]\n", 25-x, "",
+			fprintf(file, "%*s[%lds,%lu,%ddb]\n", 25-x, "",
 				inactive.tv_sec,sta->numpackets,
-				sta->encrypted);
+				sta->signal);
 		}
 		fprintf(file, "\n");
 	}

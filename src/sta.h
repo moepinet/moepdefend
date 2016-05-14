@@ -13,6 +13,7 @@ struct sta {
 	u8 hwaddr[IEEE80211_ALEN];
 	u64 numpackets;
 	u8 encrypted;
+	s8 signal;
 	struct sta_priv *priv;
 };
 

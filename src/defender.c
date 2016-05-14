@@ -214,6 +214,7 @@ radh(moep_dev_t dev, moep_frame_t frame)
 		if (0 > ret)
 			goto end;
 		cell->ciphers = ret;
+		cell->signal = rt->signal;
 
 	}
 	else if (ieee80211_is_data(hdr->frame_control)) {
@@ -224,6 +225,7 @@ radh(moep_dev_t dev, moep_frame_t frame)
 		sta_update(sta);
 		if (ieee80211_has_protected(hdr->frame_control))
 			sta->encrypted = 1;
+		sta->signal = rt->signal;
 	}
 
 	if (whitelist_check(&cfg.whitelist.cell, bssid))
