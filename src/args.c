@@ -26,33 +26,40 @@ enum fix_args {
 };
 
 static struct argp_option options[] = {
+//	{
+//		.name   = "daemonize",
+//		.key	= 'd',
+//		.arg    = "DAEMON",
+//		.flags  = 0,
+//		.doc	= "daemonize"
+//	},
 	{
 		.name	= "whitelist",
 		.key	= 'w',
 		.arg	= "WLIST",
 		.flags	= 0,
-		.doc	= "Load whitelist WLIST"
+		.doc	= "load whitelist WLIST"
 	},
 	{
 		.name   = "rate",
 		.key	= 'r',
 		.arg    = "RATE | MCS",
 		.flags  = 0,
-		.doc	= "Set legacy RATE [r*500kbit/s] or MCS index"
+		.doc	= "set legacy RATE [r*500kbit/s] or MCS index"
 	},
 	{
 		.name   = "ht",
 		.key	= 'h',
 		.arg    = "HT",
 		.flags  = 0,
-		.doc	= "Set HT channel width"
+		.doc	= "set HT channel width"
 	},
 	{
 		.name   = "gi",
 		.key	= 'g',
 		.arg    = "GI",
 		.flags  = 0,
-		.doc	= "Set GI"
+		.doc	= "set GI"
 	},
 	{NULL}
 };
@@ -74,6 +81,9 @@ parse_opt(int key, char *arg, struct argp_state *state)
 	char *endptr = NULL;
 
 	switch (key) {
+	case 'd':
+		cfg->daemon = 1;
+		break;
 	case 'w':
 		strncpy(cfg->whitelist.filename, arg,
 					sizeof(cfg->whitelist.filename));
