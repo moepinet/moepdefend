@@ -6,6 +6,9 @@ AM_CFLAGS = -O2 -Wall
 bin_PROGRAMS = moepdefend
 
 moepdefend_SOURCES  = src/defender.c
+moepdefend_SOURCES += src/defender.h
+moepdefend_SOURCES += src/args.c
+moepdefend_SOURCES += src/args.h
 moepdefend_SOURCES += src/daemonize.h
 moepdefend_SOURCES += src/daemonize.c
 moepdefend_SOURCES += src/cell.h
