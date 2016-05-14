@@ -389,19 +389,20 @@ attack(moep_frame_t frame)
 {
 	struct ieee80211_hdr_gen *hdr;
 	moep_frame_t f;
-	u8 *hwaddr, *bssid;
+	u8 hwaddr[IEEE80211_ALEN];
+	u8 bssid[IEEE80211_ALEN];
 
 	if (!(hdr = moep_frame_ieee80211_hdr(frame))) {
 		LOG(LOG_ERR, "moep_frame_ieee80211_hdr() failed");
 		return -1;
 	}
 
-	if (!(bssid = get_bssid(hdr))) {
+	if (get_bssid(bssid, hdr)) {
 		return -1;
 		//LOG(LOG_INFO, "bssid not found");
 	}
 
-	if (!(hwaddr = get_sta_hwaddr(hdr))) {
+	if (get_sta_hwaddr(hwaddr, hdr)) {
 		return -1;
 		//LOG(LOG_INFO, "sta hwaddr not found");
 	}
@@ -422,8 +423,11 @@ radh(moep_dev_t dev, moep_frame_t frame)
 	struct ieee80211_hdr_gen *hdr;
 	struct moep80211_radiotap *rt;
 	size_t len;
-	u8 *payload = NULL, *hwaddr = NULL, *bssid = NULL;
-	char *essid;
+	u8 *payload = NULL;
+	u8 hwaddr[IEEE80211_ALEN];
+	u8 bssid[IEEE80211_ALEN];
+	char essid[IEEE80211_MAX_SSID_LEN+1];
+	int ret;
 	cell_t cell;
 	sta_t sta;
 
@@ -442,9 +446,7 @@ radh(moep_dev_t dev, moep_frame_t frame)
 		goto end;
 	}
 
-	bssid = get_bssid(hdr);
-	if (!bssid) {
-		LOG(LOG_ERR, "no bssid");
+	if (get_bssid(bssid, hdr)) {
 		goto end;
 	}
 
@@ -453,14 +455,14 @@ radh(moep_dev_t dev, moep_frame_t frame)
 	cell_update_timestamp(cell);
 
 	if (ieee80211_is_beacon(hdr->frame_control)) {
-		essid = get_essid((const struct ieee80211_beacon *)payload, len);
-		if (!essid)
+		ret = get_essid(essid, sizeof(essid),
+				(const struct ieee80211_beacon *)payload, len);
+		if (0 > ret)
 			goto end;
 		cell_update_essid(cell, essid);
 	}
 	else if (ieee80211_is_data(hdr->frame_control)) {
-		hwaddr = get_sta_hwaddr(hdr);
-		if (!hwaddr)
+		if (get_sta_hwaddr(hwaddr, hdr))
 			goto end;
 		if (!(sta = sta_find(&cell->sl, hwaddr)))
 			sta = sta_add(&cell->sl, hwaddr);

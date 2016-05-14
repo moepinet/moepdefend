@@ -11,8 +11,8 @@
 
 #include "frametypes.h"
 
-u8 * get_bssid(struct ieee80211_hdr_gen *hdr);
-u8 * get_sta_hwaddr(const struct ieee80211_hdr_gen *hdr);
-char * get_essid(const struct ieee80211_beacon * bcn, ssize_t len);
+int get_bssid(u8 *buffer, const struct ieee80211_hdr_gen *hdr);
+int get_sta_hwaddr(u8 *buffer, const struct ieee80211_hdr_gen *hdr);
+int get_essid(char *buffer, size_t maxlen, const struct ieee80211_beacon * bcn, ssize_t len);
 
 #endif
