@@ -15,6 +15,7 @@ struct cell {
 	struct list_head sl;
 	u8 bssid[IEEE80211_ALEN];
 	char essid[ESSID_MAX_LEN+1];
+	u64 numpackets;
 	struct cell_priv *priv;
 };
 

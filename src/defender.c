@@ -251,6 +251,7 @@ log_status(timeout_t t, u32 overrun, void *data)
 	sta_t sta;
 	struct timespec inactive;
 	FILE *file;
+	int x;
 
 	if (!(file = fopen(DEFAULT_LOGFILE, "w"))) {
 		LOG(LOG_ERR, "fopen() failed: %s", strerror(errno));
@@ -263,19 +264,23 @@ log_status(timeout_t t, u32 overrun, void *data)
 				strerror(errno));
 			continue;
 		}
-		fprintf(file, "Cell %s [inactive since %lds]\n",
-			ether_ntoa((const struct ether_addr *)cell->bssid),
-			inactive.tv_sec);
-		fprintf(file, "  ESSID: %s\n", cell->essid);
+
+		x = fprintf(file, "Cell %s %s",
+			mac_ntoa((const struct ether_addr *)cell->bssid),
+			cell->essid);
+		fprintf(file, "%*lds ", 62-x, inactive.tv_sec);
+		fprintf(file, "%*lu\n", 7, cell->numpackets);
+
 		list_for_each_entry(sta, &cell->sl, list) {
 			if (sta_inactive(sta, &inactive)) {
 				LOG(LOG_ERR, "sta_inactive() failed: %s",
 					strerror(errno));
 				continue;
 			}
-			fprintf(file, "  STA %s [inactive since %lds]\n",
-				ether_ntoa((const struct ether_addr *)sta->hwaddr),
-				inactive.tv_sec);
+			x = fprintf(file, "  STA %s",
+				mac_ntoa((const struct ether_addr *)cell->bssid));
+			fprintf(file, "%*s[%lds,%lu]\n", 25-x, "",
+				inactive.tv_sec,sta->numpackets);
 		}
 	}
 
@@ -467,7 +472,7 @@ radh(moep_dev_t dev, moep_frame_t frame)
 	if (whitelist_check(&cfg.whitelist.sta, hwaddr))
 		goto end;
 
-	attack(frame);
+	//attack(frame);
 
 	end:
 	moep_frame_destroy(frame);

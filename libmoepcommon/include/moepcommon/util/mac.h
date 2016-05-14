@@ -18,13 +18,7 @@ maccmp(const void *x, const void *y)
 
 static inline int
 is_mcast_mac(const void *mac) {
-	// IPv4: 01-00-5E-00-00-00 to 01-00-5E-7F-FF-FF
-	// IPv6: 33-33-00-00-00-00 to 33-33-FF-FF-FF-FF
-	if ((*((uint32_t *) mac) & htole32(0x80ffffff)) == htole32(0x005e0001))
-		return 1;
-	if (*((uint16_t *) mac) == 0x3333)
-		return 1;
-	return 0;
+	return (0x01 & ((unsigned char *)mac)[0]);
 }
 
 static inline int
@@ -40,8 +34,7 @@ is_bcast_mac(const void *mac)
 static inline int
 is_unicast_mac(const void *mac)
 {
-	return (0x01 & ((unsigned char *)mac)[0])^0x01;
-//	return ~(is_bcast_mac(mac) | is_mcast_mac(mac));
+	return is_mcast_mac(mac)^0x01;
 }
 
 static inline int
@@ -55,6 +48,35 @@ is_zero_mac(const void *mac)
 {
 	unsigned long long int zero = 0;
 	return !memcmp(mac,&zero,MAC_ALEN);
+}
+
+static inline char *
+mac_ntoa(const void *addr)
+{
+	static char str[18];
+
+	sprintf(str, "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
+		((char *)addr)[0], ((char *)addr)[1], ((char *)addr)[2],
+		((char *)addr)[3], ((char *)addr)[4], ((char *)addr)[5]);
+
+	return str;
+}
+
+static inline char *
+mac_ntoa_r(const void *addr)
+{
+	char *str;
+
+	if (!(str = malloc(18))) {
+		errno = ENOMEM;
+		return NULL;
+	}
+
+	sprintf(str, "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
+		((char *)addr)[0], ((char *)addr)[1], ((char *)addr)[2],
+		((char *)addr)[3], ((char *)addr)[4], ((char *)addr)[5]);
+
+	return str;
 }
 
 #endif //_MAC_H

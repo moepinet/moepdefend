@@ -86,6 +86,7 @@ int
 cell_update_timestamp(cell_t cell)
 {
 	timeout_settime(cell->priv->timeout, 0, timeout_msec(CELL_TIMEOUT*1000,0));
+	cell->numpackets++;
 	return 0;
 }
 

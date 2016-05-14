@@ -76,6 +76,7 @@ int
 sta_update(sta_t sta)
 {
 	timeout_settime(sta->priv->timeout, 0, timeout_msec(STA_TIMEOUT*1000,0));
+	sta->numpackets++;
 	return 0;
 }
 
