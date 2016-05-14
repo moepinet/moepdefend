@@ -279,8 +279,8 @@ log_status(timeout_t t, u32 overrun, void *data)
 					strerror(errno));
 				continue;
 			}
-			x = fprintf(file, "  STA %s",
-				mac_ntoa((const struct ether_addr *)cell->bssid));
+			x = fprintf(file, "  STA %s", mac_ntoa(
+				(const struct ether_addr *)sta->hwaddr));
 			fprintf(file, "%*s[%lds,%lu]\n", 25-x, "",
 				inactive.tv_sec,sta->numpackets);
 		}
