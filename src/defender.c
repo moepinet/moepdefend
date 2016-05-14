@@ -27,6 +27,7 @@
 #include <moepcommon/timeout.h>
 
 #include "args.h"
+#include "attack.h"
 #include "cell.h"
 #include "cfg.h"
 #include "daemonize.h"
