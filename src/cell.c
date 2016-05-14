@@ -5,6 +5,7 @@
 #include "cell.h"
 #include "sta.h"
 #include "global.h"
+#include "list_sort.h"
 
 LIST_HEAD(cl);
 
@@ -115,4 +116,21 @@ cell_inactive(const cell_t cell, struct timespec *ts)
 	timespecsub(ts, &remaining.it_value);
 
 	return 0;
+}
+
+
+static int cmp(void *priv, struct list_head *a, struct list_head *b)
+{
+	struct cell * ca = container_of(a, struct cell, list);
+	struct cell * cb = container_of(b, struct cell, list);
+
+	if (ca->numpackets > cb->numpackets)
+		return 1;
+	return 0;
+}
+
+void
+cell_sort()
+{
+	list_sort(NULL, &cl, cmp);
 }

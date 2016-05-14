@@ -253,12 +253,14 @@ log_status(timeout_t t, u32 overrun, void *data)
 	FILE *file;
 	int x;
 
+	cell_sort();
+
 	if (!(file = fopen(DEFAULT_LOGFILE, "w"))) {
 		LOG(LOG_ERR, "fopen() failed: %s", strerror(errno));
 		return -1;
 	}
 
-	list_for_each_entry(cell, &cl, list) {
+	list_for_each_entry_reverse(cell, &cl, list) {
 		if (cell_inactive(cell, &inactive)) {
 			LOG(LOG_ERR, "cell_inactive() failed: %s",
 				strerror(errno));
@@ -282,6 +284,7 @@ log_status(timeout_t t, u32 overrun, void *data)
 			fprintf(file, "%*s[%lds,%lu]\n", 25-x, "",
 				inactive.tv_sec,sta->numpackets);
 		}
+		fprintf(file, "\n");
 	}
 
 	fclose(file);

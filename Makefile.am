@@ -20,6 +20,8 @@ moepdefend_SOURCES += src/radiotap.c
 moepdefend_SOURCES += src/radiotap.h
 moepdefend_SOURCES += src/helper.c
 moepdefend_SOURCES += src/helper.h
+moepdefend_SOURCES += src/list_sort.c
+moepdefend_SOURCES += src/list_sort.h
 moepdefend_SOURCES += src/frametypes.h
 moepdefend_SOURCES += src/params.h
 

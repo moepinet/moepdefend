@@ -31,5 +31,6 @@ cell_t cell_add(const u8 *bssid);
 int cell_update_timestamp(cell_t cell);
 int cell_update_essid(cell_t cell, const char *essid);
 int cell_inactive(const cell_t cell, struct timespec *ts);
+void cell_sort();
 
 #endif//_CELL_H_
