@@ -12,6 +12,7 @@ struct sta {
 	struct list_head list;
 	u8 hwaddr[IEEE80211_ALEN];
 	u64 numpackets;
+	u8 encrypted;
 	struct sta_priv *priv;
 };
 

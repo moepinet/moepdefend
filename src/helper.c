@@ -1,4 +1,5 @@
 #include "helper.h"
+#include "global.h"
 
 int
 get_bssid(u8 *buffer, const struct ieee80211_hdr_gen *hdr)
@@ -39,7 +40,7 @@ get_essid(char *buffer, size_t maxlen, const struct ieee80211_beacon * bcn,
 
 	memset(buffer, 0, maxlen);
 
-	for (ptr=0; ptr<len-2; ptr+=bcn->variable[ptr+1]) {
+	for (ptr=0; ptr<len-2; ptr+=bcn->variable[ptr+1]+2) {
 		if (bcn->variable[ptr] != WLAN_EID_SSID)
 			continue;
 		elen = min((size_t)bcn->variable[ptr+1]+1, maxlen);
@@ -80,4 +81,49 @@ get_sta_hwaddr(u8 *buffer, const struct ieee80211_hdr_gen *hdr)
 	}
 
 	return 0;
+}
+
+struct cipher {
+	u8 oui[3];
+	u8 type;
+} __attribute__((packed));
+
+struct wlan_eid_rsn {
+	u8 eid;
+	u8 len;
+	struct cipher group_cipher;
+	u16 rsn_version;
+	u16 pairwise_cipher_count;
+	u8 variable[0];
+
+} __attribute__((packed));
+
+int
+get_encryption(const struct ieee80211_beacon *bcn, size_t len)
+{
+	size_t tag_len = 0;
+	struct wlan_eid_rsn rsn;
+	static struct cipher pairwise_cipher[16];
+	int ptr, i;
+	int mask = 0;
+
+	for (ptr=0; ptr<len-2; ptr+=bcn->variable[ptr+1]+2) {
+		if (bcn->variable[ptr] != WLAN_EID_RSN)
+			continue;
+		tag_len = bcn->variable[ptr+1];
+		break;
+	}
+
+	if (0 == tag_len)
+		return -1;
+
+
+	memcpy(&rsn, bcn->variable+ptr, sizeof(rsn));
+	memcpy(pairwise_cipher, bcn->variable+ptr+sizeof(rsn),
+		min(rsn.pairwise_cipher_count,16)*sizeof(struct cipher));
+
+	for (i=0; i<min(rsn.pairwise_cipher_count,2); i++)
+		mask |= BIT(pairwise_cipher[i].type);
+
+	return mask;
 }

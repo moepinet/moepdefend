@@ -34,6 +34,7 @@
 #include "cfg.h"
 #include "deauth.h"
 #include "helper.h"
+#include "state.h"
 
 
 static int _run = 1;
@@ -241,56 +242,6 @@ moep_frame_t create_rad_frame()
 	return moep_dev_frame_create(cfg.rad.dev);
 }
 
-static int
-log_status(timeout_t t, u32 overrun, void *data)
-{
-	(void) data;
-	(void) t;
-	(void) overrun;
-	cell_t cell;
-	sta_t sta;
-	struct timespec inactive;
-	FILE *file;
-	int x;
-
-	cell_sort();
-
-	if (!(file = fopen(DEFAULT_LOGFILE, "w"))) {
-		LOG(LOG_ERR, "fopen() failed: %s", strerror(errno));
-		return -1;
-	}
-
-	list_for_each_entry_reverse(cell, &cl, list) {
-		if (cell_inactive(cell, &inactive)) {
-			LOG(LOG_ERR, "cell_inactive() failed: %s",
-				strerror(errno));
-			continue;
-		}
-
-		x = fprintf(file, "Cell %s %s",
-			mac_ntoa((const struct ether_addr *)cell->bssid),
-			cell->essid);
-		fprintf(file, "%*lds ", 62-x, inactive.tv_sec);
-		fprintf(file, "%*lu\n", 7, cell->numpackets);
-
-		list_for_each_entry(sta, &cell->sl, list) {
-			if (sta_inactive(sta, &inactive)) {
-				LOG(LOG_ERR, "sta_inactive() failed: %s",
-					strerror(errno));
-				continue;
-			}
-			x = fprintf(file, "  STA %s", mac_ntoa(
-				(const struct ether_addr *)sta->hwaddr));
-			fprintf(file, "%*s[%lds,%lu]\n", 25-x, "",
-				inactive.tv_sec,sta->numpackets);
-		}
-		fprintf(file, "\n");
-	}
-
-	fclose(file);
-	return 0;
-}
-
 int
 rad_tx(moep_frame_t f)
 {
@@ -327,7 +278,7 @@ run()
 		DIE("sigprocmask() failed: %s", strerror(errno));
 	}
 
-	if (0 > timeout_create(CLOCK_MONOTONIC, &logt, log_status, NULL))
+	if (0 > timeout_create(CLOCK_MONOTONIC, &logt, state_log_cb, NULL))
 		DIE("timeout_create() failed: %s", strerror(errno));
 	timeout_settime(logt, 0, timeout_msec(LOG_INTERVAL,LOG_INTERVAL));
 
@@ -463,6 +414,13 @@ radh(moep_dev_t dev, moep_frame_t frame)
 		if (0 > ret)
 			goto end;
 		cell_update_essid(cell, essid);
+
+		ret = get_encryption(
+				(const struct ieee80211_beacon *)payload, len);
+		if (0 > ret)
+			goto end;
+		cell->ciphers = ret;
+
 	}
 	else if (ieee80211_is_data(hdr->frame_control)) {
 		if (0 > get_sta_hwaddr(hwaddr, hdr))
@@ -470,6 +428,8 @@ radh(moep_dev_t dev, moep_frame_t frame)
 		if (!(sta = sta_find(&cell->sl, hwaddr)))
 			sta = sta_add(&cell->sl, hwaddr);
 		sta_update(sta);
+		if (ieee80211_has_protected(hdr->frame_control))
+			sta->encrypted = 1;
 	}
 
 	if (whitelist_check(&cfg.whitelist.cell, bssid))

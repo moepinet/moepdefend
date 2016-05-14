@@ -11,8 +11,26 @@
 
 #include "frametypes.h"
 
+
+#define CIPHER_SUITE_WEP40	1
+#define CIPHER_SUITE_TKIP	2
+#define CIPHER_SUITE_CCMP	4
+#define CIPHER_SUITE_WEP104	5
+
+const static char * cipher_suite_string[] = {
+	"",
+	"WEP40",
+	"TKIP",
+	"",
+	"CCMP",
+	"WEP104",
+	NULL,
+};
+
+
 int get_bssid(u8 *buffer, const struct ieee80211_hdr_gen *hdr);
 int get_sta_hwaddr(u8 *buffer, const struct ieee80211_hdr_gen *hdr);
 int get_essid(char *buffer, size_t maxlen, const struct ieee80211_beacon * bcn, ssize_t len);
+int get_encryption(const struct ieee80211_beacon *bcn, size_t len);
 
 #endif

@@ -16,6 +16,7 @@ struct cell {
 	u8 bssid[IEEE80211_ALEN];
 	char essid[ESSID_MAX_LEN+1];
 	u64 numpackets;
+	u32 ciphers;
 	struct cell_priv *priv;
 };
 
