@@ -1,6 +1,6 @@
 /*
  This file is part of moep80211
- (C) 2011-2013 Stephan M. Guenther (and other contributing authors)
+ (C) 2011-2016 Stephan M. Guenther (and other contributing authors)
 
  moep80211 is free software; you can redistribute it and/or modify it under the
  terms of the GNU General Public License as published by the Free Software
@@ -26,20 +26,20 @@
 
 #include <moepcommon/timeout.h>
 
-#include "global.h"
-#include "defender.h"
 #include "args.h"
-#include "daemonize.h"
 #include "cell.h"
-#include "frametypes.h"
-#include "whitelist.h"
 #include "cfg.h"
+#include "daemonize.h"
 #include "deauth.h"
+#include "defender.h"
+#include "frametypes.h"
+#include "global.h"
 #include "helper.h"
 #include "state.h"
+#include "whitelist.h"
 
 
-static int _run = 1;
+static volatile int _run = 1;
 static int sfd = -1;
 
 extern struct argp argp;
