@@ -17,8 +17,6 @@ moepdefend_SOURCES += src/sta.h
 moepdefend_SOURCES += src/sta.c
 moepdefend_SOURCES += src/whitelist.h
 moepdefend_SOURCES += src/whitelist.c
-moepdefend_SOURCES += src/deauth.c
-moepdefend_SOURCES += src/deauth.h
 moepdefend_SOURCES += src/radiotap.c
 moepdefend_SOURCES += src/radiotap.h
 moepdefend_SOURCES += src/helper.c
@@ -31,6 +29,10 @@ moepdefend_SOURCES += src/attack.c
 moepdefend_SOURCES += src/attack.h
 moepdefend_SOURCES += src/frametypes.h
 moepdefend_SOURCES += src/params.h
+moepdefend_SOURCES += src/attacks/deauth.c
+moepdefend_SOURCES += src/attacks/deauth.h
+moepdefend_SOURCES += src/attacks/michael.c
+moepdefend_SOURCES += src/attacks/michael.h
 
 moepdefend_CPPFLAGS = $(LIBMOEPCOMMON_CFLAGS)
 

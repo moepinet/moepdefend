@@ -2,7 +2,8 @@
 #include <moepcommon/types.h>
 
 #include "attack.h"
-#include "deauth.h"
+#include "attacks/deauth.h"
+#include "attacks/michael.h"
 #include "helper.h"
 #include "defender.h"
 #include "global.h"

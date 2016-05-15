@@ -31,7 +31,6 @@
 #include "cell.h"
 #include "cfg.h"
 #include "daemonize.h"
-#include "deauth.h"
 #include "defender.h"
 #include "frametypes.h"
 #include "global.h"

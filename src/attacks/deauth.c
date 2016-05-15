@@ -1,11 +1,11 @@
 #include <unistd.h>
 #include <moepcommon/util.h>
 
-#include "global.h"
 #include "deauth.h"
-#include "frametypes.h"
-#include "radiotap.h"
-#include "cfg.h"
+#include "../global.h"
+#include "../frametypes.h"
+#include "../radiotap.h"
+#include "../cfg.h"
 
 extern struct cfg cfg;
 

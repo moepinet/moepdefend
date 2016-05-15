@@ -20,4 +20,13 @@ struct ieee80211_deauth {
 	u8 vendor_specific;
 } __attribute__((packed));
 
+struct ieee80211_encryption_hdr {
+	uint8_t tsc1;
+	uint8_t wep_seed;
+	uint8_t tsc0;
+	uint8_t rsvd:5;
+	uint8_t ext_iv:1;
+	uint8_t key_id:2;
+} __attribute__((packed));
+
 #endif
