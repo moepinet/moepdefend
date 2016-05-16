@@ -33,6 +33,8 @@ moepdefend_SOURCES += src/attacks/deauth.c
 moepdefend_SOURCES += src/attacks/deauth.h
 moepdefend_SOURCES += src/attacks/michael.c
 moepdefend_SOURCES += src/attacks/michael.h
+moepdefend_SOURCES += src/attacks/myattack.c
+moepdefend_SOURCES += src/attacks/myattack.h
 
 moepdefend_CPPFLAGS = $(LIBMOEPCOMMON_CFLAGS)
 
