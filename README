@@ -1,0 +1,48 @@
+
+moepdefend - example of a monitoring/injection tool based on libmoep
+====================================================================
+
+moepdefed is an example of a monitoring and frame injection tool based on
+libmoep. By default, it monitors the selected channel for cells (BSSIDs) and
+active stations. Statistical information are written to /dev/shm/moepdefend.
+If a defend mode is specified it starts to attack all stations/cells that are
+not whitelistet.
+
+Note that the attack mode is disabled by default at compile time. If you really
+want to enable it, you should rethink what you plan to do and then find out how
+to enable it on your own.
+
+
+Installation
+------------
+
+To install moepdefend you can use the following commands:
+
+	./configure
+	make
+	make install
+
+See ./configure --help for details on the available parameters. For example you
+can use --prefix=DIR to specify the installation prefix or --enable-examples to
+build the example programs.
+
+If you use a git checkout you must run the following commands first:
+
+	apt-get install autoconf-archive automake autoconf autoconf-archive autotools-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev libtool pkg-config
+	autoreconf -fi
+
+A lot of functionality of libmoep requires some patches to the
+mac80211 subsystem. The patches are shipped with libmoep. For details, see the
+README of libmoep.
+
+
+Documentation
+-------------
+
+Source code is the only documentation available.
+
+
+Where to get the latest
+-----------------------
+
+moepdefend is available at moep80211.net.
