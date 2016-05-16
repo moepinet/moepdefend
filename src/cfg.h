@@ -34,6 +34,7 @@ struct cfgdev {
 
 struct cfg {
 	int daemon;
+	int defmode;
 	struct cfgradio radio;
 	struct cfgdev rad;
 	struct whitelist whitelist;

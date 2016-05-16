@@ -130,9 +130,9 @@ get_encryption(const struct ieee80211_beacon *bcn, size_t len)
 	if (0 == tag_len)
 		return -1;
 
+	memcpy(&rsn, bcn->variable+ptr, sizeof(rsn));
 	len = min((size_t)rsn.pairwise_cipher_count, (size_t)16);
 
-	memcpy(&rsn, bcn->variable+ptr, sizeof(rsn));
 	memcpy(pairwise_cipher, bcn->variable+ptr+sizeof(rsn),
 		len*sizeof(struct cipher));
 
@@ -140,4 +140,25 @@ get_encryption(const struct ieee80211_beacon *bcn, size_t len)
 		mask |= BIT(pairwise_cipher[i].type);
 
 	return mask;
+}
+
+moep_frame_t
+moep80211_frame_clone(moep_frame_t frame)
+{
+	moep_frame_t f;
+	ssize_t len;
+	u8 *buffer = 0;
+
+	if (0 > (len = moep_frame_encode(frame, &buffer, 0)))
+		DIE("moep_frame_encode() failed");
+
+	f = moep_frame_ieee80211_create();
+
+	if (0 > moep_frame_decode(f, buffer, len))
+		DIE("moep_frame_decode() failed");
+
+	free(buffer);
+
+	return f;
+
 }

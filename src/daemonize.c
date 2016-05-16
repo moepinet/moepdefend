@@ -61,7 +61,7 @@ daemonize() {
 	// Open syslog
 	openlog("moep80211ncm",LOG_PID,LOG_USER);
 	setlogmask(LOG_UPTO(LOG_DEBUG));
-	
+
 	// Create a new session
 	if (0 > (sid = setsid())) {
 		LOG(LOG_ERR,"setsid() failed");
@@ -78,7 +78,7 @@ daemonize() {
 	close(STDIN_FILENO);
 	close(STDOUT_FILENO);
 	close(STDERR_FILENO);
-	
+
 	LOG(LOG_INFO,"daemonized");
 }
 

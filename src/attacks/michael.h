@@ -3,6 +3,6 @@
 
 #include <moep80211/system.h>
 
-moep_frame_t ccmpkill(moep_frame_t frame);
+moep_frame_t michael(moep_frame_t frame);
 
 #endif

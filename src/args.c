@@ -34,6 +34,13 @@ static struct argp_option options[] = {
 //		.doc	= "daemonize"
 //	},
 	{
+		.name   = "defmode",
+		.key	= 'm',
+		.arg    = "DEFMODE",
+		.flags  = 0,
+		.doc	= "defense on"
+	},
+	{
 		.name	= "whitelist",
 		.key	= 'w',
 		.arg	= "WLIST",
@@ -83,6 +90,9 @@ parse_opt(int key, char *arg, struct argp_state *state)
 	switch (key) {
 	case 'd':
 		cfg->daemon = 1;
+		break;
+	case 'm':
+		cfg->defmode= 1;
 		break;
 	case 'w':
 		strncpy(cfg->whitelist.filename, arg,

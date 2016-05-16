@@ -21,12 +21,20 @@ struct ieee80211_deauth {
 } __attribute__((packed));
 
 struct ieee80211_encryption_hdr {
-	uint8_t tsc1;
-	uint8_t wep_seed;
-	uint8_t tsc0;
-	uint8_t rsvd:5;
-	uint8_t ext_iv:1;
-	uint8_t key_id:2;
+	u8 tsc1;
+	u8 wep_seed;
+	u8 tsc0;
+	u8 rsvd:5;
+	u8 ext_iv:1;
+	u8 key_id:2;
+} __attribute__((packed));
+
+struct ieee80211_qos_ctrl {
+	u8 tid:4;
+	u8 eosp:1;
+	u8 ack_policy:2;
+	u8 reserved:1;
+	u8 txop;
 } __attribute__((packed));
 
 #endif

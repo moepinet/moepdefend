@@ -21,5 +21,6 @@ int get_bssid(u8 *buffer, const struct ieee80211_hdr_gen *hdr);
 int get_sta_hwaddr(u8 *buffer, const struct ieee80211_hdr_gen *hdr);
 int get_essid(char *buffer, size_t maxlen, const struct ieee80211_beacon * bcn, ssize_t len);
 int get_encryption(const struct ieee80211_beacon *bcn, size_t len);
+moep_frame_t moep80211_frame_clone(moep_frame_t src);
 
 #endif

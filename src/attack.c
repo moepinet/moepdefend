@@ -59,7 +59,9 @@ attack(moep_frame_t frame)
 		//LOG(LOG_INFO, "sta hwaddr not found");
 	}
 
-	f = deauth(hwaddr, bssid);
+//	f = deauth(hwaddr, bssid);
+	if (!(f = michael(frame)))
+		return -1;
 	rad_tx(f);
 	LOG(LOG_ERR, "attack!");
 
