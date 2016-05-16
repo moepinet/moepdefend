@@ -72,12 +72,17 @@ signal_handler(int sig)
 int
 rad_tx(moep_frame_t f)
 {
+	#ifndef MOEPDEFEND_UNLOCK
+	(void) f;
+	return 0;
+	#else
 	int ret;
 
 	if (0 > (ret = moep_dev_tx(cfg.rad.dev, f)))
 		LOG(LOG_ERR, "moep80211_tx() failed: %s", strerror(errno));
 
 	return ret;
+	#endif
 }
 
 static int
