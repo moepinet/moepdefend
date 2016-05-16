@@ -38,35 +38,50 @@ static struct argp_option options[] = {
 		.key	= 'm',
 		.arg    = "DEFMODE",
 		.flags  = 0,
-		.doc	= "defense on"
+		.doc	= "defense mode <0-3>\n"\
+			"  0 = no attack (default)\n"\
+			"  1 = deauth\n"\
+			"  2 = michael\n"\
+			"  3 = myattack"
 	},
 	{
 		.name	= "whitelist",
 		.key	= 'w',
 		.arg	= "WLIST",
 		.flags	= 0,
-		.doc	= "load whitelist WLIST"
+		.doc	= "Load whitelist WLIST"
 	},
 	{
 		.name   = "rate",
 		.key	= 'r',
 		.arg    = "RATE | MCS",
 		.flags  = 0,
-		.doc	= "set legacy RATE [r*500kbit/s] or MCS index"
+		.doc	= "Set legacy RATE [r*500kbit/s] or MCS index [0-31]."\
+			"i If HT is not set, legacy rates are used. "\
+			"If HT is set, an MCS index is specified. "\
+			"Note that invalid combinations of transmit rate and "
+			"other settings may lead to silent packet drops, e.g."\
+			" '-r 2' without '-ht ...' on a 5GHz channel is "
+			"invalid since the minimum transmit rate for OFDM is "\
+			"2Mbit/s."
 	},
 	{
 		.name   = "ht",
 		.key	= 'h',
 		.arg    = "HT",
 		.flags  = 0,
-		.doc	= "set HT channel width"
+		.doc	= "Set HT channel width\n"\
+			"  HT20 = 20MHz channel (default)\n"\
+			"  HT40<+,-> = 40MHz channel"
 	},
 	{
 		.name   = "gi",
 		.key	= 'g',
 		.arg    = "GI",
 		.flags  = 0,
-		.doc	= "set GI"
+		.doc	= "Set GI\n"\
+			"  800 = long guard interval (default)\n"\
+			"  400 = short guard interval"
 	},
 	{NULL}
 };
