@@ -9,6 +9,14 @@
 
 #include "whitelist.h"
 
+enum attacks {
+	ATTACK_NONE	= 0,
+	ATTACK_DEATUH	= 1,
+	ATTACK_MICHAEL	= 2,
+	ATTACK_MYATTACK	= 3,
+	ATTACK_COUNT	= 4,
+};
+
 struct cfgradio {
 	u64	freq0;
 	u64	freq1;

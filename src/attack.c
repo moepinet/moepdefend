@@ -4,10 +4,13 @@
 #include "attack.h"
 #include "attacks/deauth.h"
 #include "attacks/michael.h"
+#include "attacks/myattack.h"
+#include "cfg.h"
 #include "helper.h"
 #include "defender.h"
 #include "global.h"
 
+extern struct cfg cfg;
 
 /*
  * This is our playground: attack() is called whenever a suspicious frame was
@@ -59,9 +62,23 @@ attack(moep_frame_t frame)
 		//LOG(LOG_INFO, "sta hwaddr not found");
 	}
 
-//	f = deauth(hwaddr, bssid);
-	if (!(f = michael(frame)))
+	switch (cfg.defmode) {
+	case ATTACK_DEATUH:
+		if (!(f = deauth(hwaddr, bssid)))
+			return -1;
+		break;
+	case ATTACK_MICHAEL:
+		if (!(f = michael(frame)))
+			return -1;
+		break;
+	case ATTACK_MYATTACK:
+		if (!(f = myattack(frame)))
+			return -1;
+		break;
+	default:
 		return -1;
+		break;
+	}
 	rad_tx(f);
 	LOG(LOG_ERR, "attack!");
 

@@ -5,9 +5,6 @@
 #include "../global.h"
 #include "../frametypes.h"
 #include "../radiotap.h"
-#include "../cfg.h"
-
-extern struct cfg cfg;
 
 moep_frame_t
 deauth(const u8 *victim, const u8 *bssid)

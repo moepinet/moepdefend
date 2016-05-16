@@ -92,7 +92,10 @@ parse_opt(int key, char *arg, struct argp_state *state)
 		cfg->daemon = 1;
 		break;
 	case 'm':
-		cfg->defmode= 1;
+		cfg->defmode = atoi(arg);
+		if (cfg->defmode < 0 || cfg->defmode > ATTACK_COUNT)
+			argp_failure(state, 1, errno,
+				"Invalid attack mode: %d", cfg->defmode);
 		break;
 	case 'w':
 		strncpy(cfg->whitelist.filename, arg,
