@@ -34,15 +34,19 @@ michael(moep_frame_t frame)
 	struct ieee80211_encryption_hdr *enc_hdr;
 	struct ieee80211_qos_ctrl *qos;
 	struct moep80211_radiotap *rt;
+	moep_frame_t f;
+
+	// we just modify some things, so let's clone the frame
+	f = moep80211_frame_clone(frame);
 
 	// encryption header should follow directly to the generic header
 	enc_hdr = (struct ieee80211_encryption_hdr *)
-				moep_frame_get_payload(frame, &len);
+				moep_frame_get_payload(f, &len);
 	if (len < sizeof(struct ieee80211_encryption_hdr))
 		return NULL; // cannot be a valid encryption header
 
 	// double-check that the frame is valid and TKIP-encrypted
-	hdr = moep_frame_ieee80211_hdr(frame);
+	hdr = moep_frame_ieee80211_hdr(f);
 	if (!ieee80211_is_data(hdr->frame_control))
 		return NULL;
 	if (!ieee80211_has_protected(hdr->frame_control))
@@ -69,9 +73,9 @@ michael(moep_frame_t frame)
 	qos->tid = rand() & 0x0f;
 
 	// init radiotap header to defaults
-	rt = moep_frame_radiotap(frame);
+	rt = moep_frame_radiotap(f);
 	radiotap_set_defaults(rt);
 
-	return frame;
+	return f;
 }
 
