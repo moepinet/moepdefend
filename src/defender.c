@@ -92,7 +92,7 @@ run()
 	timeout_t logt;
 	struct signalfd_siginfo siginfo;
 	fd_set rfds, rfd;
-	sigset_t sigset, oldset, blockset, emptyset;
+	sigset_t sigset, oldset, blockset;
 
 	sigemptyset(&blockset);
 	sigaddset(&blockset, SIGRTMIN);
@@ -113,9 +113,6 @@ run()
 	if (0 > timeout_create(CLOCK_MONOTONIC, &logt, state_log_cb, NULL))
 		DIE("timeout_create() failed: %s", strerror(errno));
 	timeout_settime(logt, 0, timeout_msec(LOG_INTERVAL,LOG_INTERVAL));
-
-	sigemptyset(&emptyset);
-	sigaddset(&emptyset, SIGRTMIN);
 
 	FD_ZERO(&rfds);
 	FD_SET(sfd, &rfds);
